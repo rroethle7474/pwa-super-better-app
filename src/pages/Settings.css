@@ -1,0 +1,446 @@
+.settings-header {
+  font-size: 28px;
+  font-weight: 900;
+  margin-bottom: 24px;
+  letter-spacing: -0.04em;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+  padding: 4px 0;
+  margin-bottom: 12px;
+}
+
+.collapsible-header:active {
+  opacity: 0.7;
+}
+
+.collapsible-header .settings-section-title {
+  margin-bottom: 0;
+}
+
+.settings-section-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.settings-section-title.archived-title {
+  margin-top: 24px;
+  color: var(--text-secondary);
+}
+
+.settings-section-title.data-title {
+  margin-top: 32px;
+}
+
+.question-list {
+  margin-bottom: 12px;
+}
+
+.question-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--card-border);
+}
+
+.question-row.archived {
+  opacity: 0.7;
+}
+
+.question-row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.question-row-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 2px;
+}
+
+.question-row-prompt {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.question-row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.question-row-action {
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-secondary);
+}
+
+.question-row-action.edit {
+  color: var(--primary);
+}
+
+.question-row-action.archive {
+  color: var(--text-muted);
+}
+
+.question-edit-row {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--primary);
+}
+
+.question-edit-row .add-form-input {
+  margin-bottom: 8px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.edit-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.edit-action-btn.cancel {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+}
+
+.edit-action-btn.save {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.25);
+}
+
+.edit-action-btn:active {
+  transform: scale(0.95);
+}
+
+.edit-action-btn.save:active {
+  background: var(--primary-dark);
+  box-shadow: 0 2px 6px rgba(108, 99, 255, 0.15);
+}
+
+.question-row-action.restore {
+  color: var(--success);
+}
+
+.question-row-action.delete {
+  color: var(--error);
+}
+
+.question-row-action:active {
+  opacity: 0.7;
+}
+
+.add-question-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 2px dashed var(--card-border);
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.add-question-btn:active {
+  opacity: 0.7;
+}
+
+.add-form {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--primary);
+}
+
+.add-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.add-form-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.add-form-close {
+  color: var(--text-muted);
+  padding: 4px;
+}
+
+.add-form-input {
+  display: block;
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--text);
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.add-form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.add-form-submit {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.3);
+}
+
+.add-form-submit:active {
+  transform: scale(0.96);
+  background: var(--primary-dark);
+  box-shadow: 0 2px 8px rgba(108, 99, 255, 0.2);
+}
+
+.type-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.type-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--input-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-muted);
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.type-btn:active {
+  transform: scale(0.95);
+}
+
+.type-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.3);
+}
+
+.positive-answer-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.type-btn.positive-yes.active {
+  background: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+}
+
+.type-btn.positive-no.active {
+  background: var(--error);
+  border-color: var(--error);
+  box-shadow: 0 4px 16px rgba(233, 69, 96, 0.3);
+}
+
+.settings-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: -2px;
+  margin-bottom: 8px;
+}
+
+.settings-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.settings-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.settings-card-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  transition: transform 0.15s;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+.settings-btn:active {
+  transform: scale(0.97);
+  border-color: rgba(108, 99, 255, 0.25);
+  box-shadow: 0 2px 12px rgba(108, 99, 255, 0.12);
+}
+
+.settings-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.settings-btn.export {
+  color: var(--primary);
+}
+
+.settings-btn.signout {
+  border-color: rgba(168, 168, 179, 0.2);
+  color: var(--text-secondary);
+}
+
+.settings-btn.danger {
+  border-color: rgba(233, 69, 96, 0.3);
+  color: var(--error);
+  background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(233, 69, 96, 0.05) 100%);
+  box-shadow: 0 4px 24px rgba(233, 69, 96, 0.08);
+}
+
+.settings-btn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-btn-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-btn-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.purge-confirm {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--accent);
+  margin-bottom: 12px;
+}
+
+.purge-warning {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.purge-warning-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.purge-warning-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 20px;
+}
+
+.purge-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.purge-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.purge-btn.cancel {
+  background: var(--input-bg);
+  color: var(--text-secondary);
+}
+
+.purge-btn.confirm {
+  background: var(--error);
+}
+
+.purge-btn:active {
+  opacity: 0.8;
+}
+
+.purged-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--success);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--success);
+}

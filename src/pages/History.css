@@ -1,0 +1,46 @@
+.search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 10px 14px;
+  gap: 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--card-border);
+}
+
+.search-input {
+  flex: 1;
+  font-size: 16px;
+  color: var(--text);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-clear {
+  color: var(--text-muted);
+  padding: 2px;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  background: var(--input-bg);
+  border-radius: 10px;
+  border: 1px solid var(--card-border);
+}
+
+.export-btn:active {
+  opacity: 0.7;
+}

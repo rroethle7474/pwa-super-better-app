@@ -1,0 +1,156 @@
+.mascot-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  position: relative;
+  margin: 0 0 4px;
+  min-height: 140px;
+  padding-top: 30px;
+}
+
+/* === Monkey base === */
+.mascot-monkey {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+/* Idle: gentle breathing */
+.mascot-idle {
+  animation: monkeyBreathe 3s ease-in-out infinite;
+}
+
+@keyframes monkeyBreathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+/* Celebrating: jump and bounce */
+.mascot-celebrating {
+  animation: monkeyCelebrate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes monkeyCelebrate {
+  0% { transform: translateY(0) scale(1) rotate(0deg); }
+  20% { transform: translateY(-30px) scale(1.1) rotate(-5deg); }
+  40% { transform: translateY(-25px) scale(1.08) rotate(5deg); }
+  60% { transform: translateY(-15px) scale(1.05) rotate(-3deg); }
+  80% { transform: translateY(-5px) scale(1.02) rotate(2deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+/* Shrug */
+.mascot-shrug {
+  animation: monkeyShrug 0.5s ease-out both;
+}
+
+@keyframes monkeyShrug {
+  0% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-5px) rotate(-3deg); }
+  60% { transform: translateY(-3px) rotate(3deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+/* Tail wagging */
+.mascot-tail {
+  transform-origin: 50px 86px;
+  animation: tailWag 1.5s ease-in-out infinite;
+}
+
+@keyframes tailWag {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(8deg); }
+  75% { transform: rotate(-8deg); }
+}
+
+.mascot-celebrating .mascot-tail {
+  animation: tailWagFast 0.3s ease-in-out 3;
+}
+
+@keyframes tailWagFast {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+}
+
+/* === Speech bubble === */
+.mascot-bubble {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px) scale(0.8);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  width: max-content;
+  max-width: 220px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.mascot-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 12px;
+  height: 12px;
+  background: var(--glass-bg);
+  border-right: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.mascot-bubble.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* === Confetti === */
+.mascot-confetti {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 80px;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  animation: confettiFall 0.8s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  opacity: 0;
+}
+
+.confetti-0 { background: #6C63FF; left: 20%; animation-delay: 0s; --x: -20px; --r: 200deg; }
+.confetti-1 { background: #e94560; left: 35%; animation-delay: 0.05s; --x: -10px; --r: -150deg; }
+.confetti-2 { background: #4CAF50; left: 50%; animation-delay: 0.1s; --x: 5px; --r: 180deg; }
+.confetti-3 { background: #FFD700; left: 65%; animation-delay: 0.05s; --x: 15px; --r: -200deg; }
+.confetti-4 { background: #6C63FF; left: 80%; animation-delay: 0s; --x: 25px; --r: 160deg; }
+.confetti-5 { background: #e94560; left: 25%; animation-delay: 0.08s; --x: -15px; --r: -180deg; }
+.confetti-6 { background: #4CAF50; left: 55%; animation-delay: 0.03s; --x: 10px; --r: 220deg; }
+.confetti-7 { background: #FFD700; left: 75%; animation-delay: 0.07s; --x: 20px; --r: -160deg; }
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50px) translateX(var(--x)) rotate(var(--r)) scale(0.5);
+    opacity: 0;
+  }
+}

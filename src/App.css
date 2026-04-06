@@ -1,0 +1,130 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.app-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+}
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  background: rgba(22, 33, 62, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 100;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 6px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  transition: color 0.25s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.tab-item:active {
+  transform: scale(0.92);
+}
+
+.tab-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 28px;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  position: relative;
+}
+
+.tab-item.active {
+  color: var(--primary);
+}
+
+.tab-item.active .tab-icon-wrapper {
+  background: rgba(108, 99, 255, 0.15);
+  box-shadow: 0 0 12px rgba(108, 99, 255, 0.2);
+}
+
+.tab-item.active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--primary);
+  box-shadow: 0 0 8px rgba(108, 99, 255, 0.5);
+}
+
+/* Page transitions */
+.page-transition {
+  will-change: transform, opacity;
+  animation-fill-mode: both;
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.page-enter {
+  animation: fadeIn 0.3s ease both;
+}
+
+.page-enter-right {
+  animation: slideInRight 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+.page-enter-left {
+  animation: slideInLeft 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+.page-exit-left {
+  animation: slideOutLeft 0.15s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+.page-exit-right {
+  animation: slideOutRight 0.15s cubic-bezier(0.25, 0.1, 0.25, 1) both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-40px); }
+}
+
+@keyframes slideOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(40px); }
+}
