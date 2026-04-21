@@ -151,7 +151,10 @@ export function getGoalProgress(goal: Goal, entries: DailyEntry[]): GoalProgress
     : 0
 
   const today = new Date()
-  const target = new Date(goal.targetDate + 'T00:00:00')
+  // Parse YYYY-MM-DD via numeric constructor — avoids iOS Safari's strict
+  // ISO-8601 parsing quirks.
+  const [ty, tm, td] = goal.targetDate.split('-').map(Number)
+  const target = new Date(ty, tm - 1, td)
   const diffMs = target.getTime() - today.getTime()
   const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
 

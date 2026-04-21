@@ -2,11 +2,20 @@ import { useEffect, useState } from 'react'
 import './MonkeyMascot.css'
 
 type MascotState = 'idle' | 'celebrating' | 'shrug'
+export type MascotMood = 'happy' | 'neutral' | 'sad'
+export type MascotBody = 'very-slim' | 'slim' | 'normal' | 'wide' | 'very-wide'
 
 interface Props {
-  answer: boolean | null
-  questionIndex: number
+  // Reflect-mode props (answer-driven transient animations)
+  answer?: boolean | null
+  questionIndex?: number
   positiveAnswer?: boolean // true = "Yes" is good, false = "No" is good
+  // Future Self mode — a persistent mood that drives the facial expression
+  mood?: MascotMood
+  // Future Self fitness axis — drives body width
+  body?: MascotBody
+  // Optional size override (default 100)
+  size?: number
 }
 
 const encouragements = [
@@ -17,21 +26,40 @@ const encouragements = [
   "It's okay, keep going!",
 ]
 
-export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = true }: Props) {
+type FacialExpression = 'happy' | 'neutral' | 'sad'
+
+function expressionForState(state: MascotState): FacialExpression {
+  if (state === 'celebrating') return 'happy'
+  if (state === 'shrug') return 'sad'
+  return 'neutral'
+}
+
+export default function MonkeyMascot({
+  answer = null,
+  questionIndex = 0,
+  positiveAnswer = true,
+  mood,
+  body = 'normal',
+  size = 100,
+}: Props) {
   const [state, setState] = useState<MascotState>('idle')
   const [shrugText, setShrugText] = useState('')
   const [showBubble, setShowBubble] = useState(false)
   const [prevAnswer, setPrevAnswer] = useState<boolean | null>(null)
   const [celebrateKey, setCelebrateKey] = useState(0)
 
+  const isMoodMode = mood !== undefined
+
   useEffect(() => {
+    if (isMoodMode) return
     // Reset to idle on question change
     setState('idle')
     setShowBubble(false)
     setPrevAnswer(null)
-  }, [questionIndex])
+  }, [questionIndex, isMoodMode])
 
   useEffect(() => {
+    if (isMoodMode) return
     if (answer === prevAnswer) return
     setPrevAnswer(answer)
 
@@ -56,17 +84,29 @@ export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = t
       }, 2500)
       return () => clearTimeout(timeout)
     }
-  }, [answer, prevAnswer, questionIndex, positiveAnswer])
+  }, [answer, prevAnswer, questionIndex, positiveAnswer, isMoodMode])
+
+  // Decide what to render:
+  // - mood mode → facial expression from mood, no transient animations
+  // - reflect mode → facial expression from state, transient animations
+  const expression: FacialExpression = isMoodMode
+    ? (mood as FacialExpression)
+    : expressionForState(state)
+
+  const rootClass = isMoodMode ? `mascot-mood-${mood}` : `mascot-${state}`
+  const bodyClass = `mascot-body-${body}`
 
   return (
     <div className="mascot-container">
-      {/* Speech bubble */}
-      <div className={`mascot-bubble ${showBubble ? 'visible' : ''}`}>
-        <span>{shrugText}</span>
-      </div>
+      {/* Speech bubble (reflect mode only) */}
+      {!isMoodMode && (
+        <div className={`mascot-bubble ${showBubble ? 'visible' : ''}`}>
+          <span>{shrugText}</span>
+        </div>
+      )}
 
-      {/* Confetti on celebrate */}
-      {state === 'celebrating' && (
+      {/* Confetti on celebrate (reflect mode only) */}
+      {!isMoodMode && state === 'celebrating' && (
         <div className="mascot-confetti" key={celebrateKey}>
           {[...Array(8)].map((_, i) => (
             <span key={i} className={`confetti-piece confetti-${i}`} />
@@ -76,17 +116,18 @@ export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = t
 
       {/* The monkey */}
       <svg
-        className={`mascot-monkey mascot-${state}`}
-        width="100"
-        height="100"
+        className={`mascot-monkey ${rootClass}`}
+        width={size}
+        height={size}
         viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Body */}
-        <ellipse cx="50" cy="72" rx="20" ry="16" fill="#8B5E3C" />
-        {/* Belly */}
-        <ellipse cx="50" cy="74" rx="13" ry="11" fill="#D4A76A" />
+        {/* Body + belly (wrapped in a group so CSS can scale its width) */}
+        <g className={`mascot-body ${bodyClass}`}>
+          <ellipse cx="50" cy="72" rx="20" ry="16" fill="#8B5E3C" />
+          <ellipse cx="50" cy="74" rx="13" ry="11" fill="#D4A76A" />
+        </g>
 
         {/* Head */}
         <circle cx="50" cy="38" r="22" fill="#8B5E3C" />
@@ -102,15 +143,24 @@ export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = t
 
         {/* Eyes */}
         <g className="mascot-eyes">
-          {state === 'celebrating' ? (
+          {expression === 'happy' ? (
             <>
               {/* Happy squint eyes */}
               <path d="M39 36 Q42 33 45 36" stroke="#3D2B1F" strokeWidth="2.5" strokeLinecap="round" fill="none" />
               <path d="M55 36 Q58 33 61 36" stroke="#3D2B1F" strokeWidth="2.5" strokeLinecap="round" fill="none" />
             </>
+          ) : expression === 'sad' ? (
+            <>
+              {/* Sad droopy eyes */}
+              <circle cx="42" cy="37" r="3" fill="#3D2B1F" />
+              <circle cx="58" cy="37" r="3" fill="#3D2B1F" />
+              {/* Droopy eyelids */}
+              <path d="M38 34 Q42 36 46 34" stroke="#3D2B1F" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+              <path d="M54 34 Q58 36 62 34" stroke="#3D2B1F" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+            </>
           ) : (
             <>
-              {/* Normal eyes */}
+              {/* Neutral eyes */}
               <circle cx="42" cy="36" r="3.5" fill="#3D2B1F" />
               <circle cx="58" cy="36" r="3.5" fill="#3D2B1F" />
               {/* Eye shine */}
@@ -122,12 +172,12 @@ export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = t
 
         {/* Mouth */}
         <g className="mascot-mouth">
-          {state === 'celebrating' ? (
+          {expression === 'happy' ? (
             /* Big smile */
             <path d="M40 44 Q50 54 60 44" stroke="#3D2B1F" strokeWidth="2" strokeLinecap="round" fill="none" />
-          ) : state === 'shrug' ? (
-            /* Slight frown / neutral */
-            <path d="M43 46 Q50 44 57 46" stroke="#3D2B1F" strokeWidth="2" strokeLinecap="round" fill="none" />
+          ) : expression === 'sad' ? (
+            /* Frown */
+            <path d="M40 50 Q50 42 60 50" stroke="#3D2B1F" strokeWidth="2" strokeLinecap="round" fill="none" />
           ) : (
             /* Gentle smile */
             <path d="M42 44 Q50 50 58 44" stroke="#3D2B1F" strokeWidth="2" strokeLinecap="round" fill="none" />
@@ -139,10 +189,10 @@ export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = t
 
         {/* Left arm */}
         <g className="mascot-left-arm">
-          {state === 'celebrating' ? (
+          {expression === 'happy' ? (
             <path d="M32 68 Q20 50 24 38" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
-          ) : state === 'shrug' ? (
-            <path d="M32 68 Q22 58 20 52" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
+          ) : expression === 'sad' ? (
+            <path d="M32 68 Q28 80 30 90" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
           ) : (
             <path d="M32 68 Q26 72 22 78" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
           )}
@@ -150,10 +200,10 @@ export default function MonkeyMascot({ answer, questionIndex, positiveAnswer = t
 
         {/* Right arm */}
         <g className="mascot-right-arm">
-          {state === 'celebrating' ? (
+          {expression === 'happy' ? (
             <path d="M68 68 Q80 50 76 38" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
-          ) : state === 'shrug' ? (
-            <path d="M68 68 Q78 58 80 52" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
+          ) : expression === 'sad' ? (
+            <path d="M68 68 Q72 80 70 90" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
           ) : (
             <path d="M68 68 Q74 72 78 78" stroke="#8B5E3C" strokeWidth="6" strokeLinecap="round" fill="none" />
           )}

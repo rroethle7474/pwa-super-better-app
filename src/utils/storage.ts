@@ -1,7 +1,5 @@
 import { supabase } from '../lib/supabase'
 import type { EntryWithAnswers } from '../lib/database.types'
-import { clearQuestions } from './questions'
-import { clearGoals } from './goals'
 
 export interface AnswerEntry {
   questionId: string;
@@ -144,9 +142,14 @@ export async function purgeAllData(): Promise<void> {
   await supabase.from('goals').delete().neq('id', '')
   await supabase.from('questions').delete().neq('id', '')
 
-  // Clear local caches
-  localStorage.removeItem('daily_quote')
-  localStorage.removeItem('daily_image')
+  // Clear local caches — wrapped because iOS Safari can throw on localStorage
+  // access in private mode or under storage pressure.
+  try {
+    localStorage.removeItem('daily_quote')
+    localStorage.removeItem('daily_image')
+  } catch {
+    // Best-effort cache clear; a throw here shouldn't abort the purge.
+  }
 }
 
 export async function exportAllEntries(): Promise<string> {

@@ -10,6 +10,7 @@ import HistoryPage from './pages/History'
 import DashboardPage from './pages/Dashboard'
 import GoalsPage from './pages/Goals'
 import SettingsPage from './pages/Settings'
+import FutureSelfPage from './pages/FutureSelf'
 import './App.css'
 
 const tabs = [
@@ -75,6 +76,7 @@ function App() {
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/future-self" element={<FutureSelfPage />} />
         </Route>
       </Route>
     </Routes>

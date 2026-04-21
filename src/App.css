@@ -9,6 +9,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  /* Momentum scrolling on older iOS Safari (no-op on modern Safari). */
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab-bar {

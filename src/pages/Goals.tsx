@@ -307,12 +307,21 @@ export default function GoalsPage() {
               <div className="goals-list">
                 {activeGoals.map((g) =>
                   editingId === g.id ? (
-                    <div key={g.id} className="goals-edit-row">
+                    <form
+                      key={g.id}
+                      className="goals-edit-row"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                        void handleSaveEdit()
+                      }}
+                    >
                       <input
                         className="goals-form-input"
                         placeholder="Goal description"
                         value={editDesc}
                         onChange={(e) => setEditDesc(e.target.value)}
+                        autoComplete="off"
                       />
                       <label className="goals-form-label">Target Value</label>
                       <input
@@ -321,6 +330,7 @@ export default function GoalsPage() {
                         placeholder="Target value"
                         value={editTarget}
                         onChange={(e) => setEditTarget(e.target.value)}
+                        inputMode="decimal"
                       />
                       <label className="goals-form-label">Target Date</label>
                       <input
@@ -349,15 +359,15 @@ export default function GoalsPage() {
                         )}
                       </select>
                       <div className="goals-edit-actions">
-                        <button className="goals-edit-action-btn cancel" onClick={() => setEditingId(null)}>
+                        <button type="button" className="goals-edit-action-btn cancel" onClick={() => setEditingId(null)}>
                           Cancel
                         </button>
-                        <button className="goals-edit-action-btn save" onClick={handleSaveEdit}>
+                        <button type="submit" className="goals-edit-action-btn save">
                           <Check size={16} />
                           Save
                         </button>
                       </div>
-                    </div>
+                    </form>
                   ) : (
                     <div key={g.id} className="goals-row">
                       <div className="goals-row-info">
@@ -400,10 +410,17 @@ export default function GoalsPage() {
                   {availableQuestionsForAdd.length === 0 ? 'All numeric questions have goals' : 'Add Goal'}
                 </button>
               ) : (
-                <div className="goals-add-form">
+                <form
+                  className="goals-add-form"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                    void handleAddGoal()
+                  }}
+                >
                   <div className="goals-add-form-header">
                     <span className="goals-add-form-title">New Goal</span>
-                    <button className="goals-add-form-close" onClick={() => setShowAddForm(false)}>
+                    <button type="button" className="goals-add-form-close" onClick={() => setShowAddForm(false)}>
                       <X size={18} />
                     </button>
                   </div>
@@ -412,6 +429,7 @@ export default function GoalsPage() {
                     placeholder="Goal description (e.g. Run a half marathon)"
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
+                    autoComplete="off"
                   />
                   <label className="goals-form-label">Target Value</label>
                   <input
@@ -420,6 +438,7 @@ export default function GoalsPage() {
                     placeholder="Target value (e.g. 200)"
                     value={newTarget}
                     onChange={(e) => setNewTarget(e.target.value)}
+                    inputMode="decimal"
                   />
                   <label className="goals-form-label">Target Date</label>
                   <input
@@ -441,14 +460,10 @@ export default function GoalsPage() {
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
-                    className="goals-form-submit"
-                    onClick={handleAddGoal}
-                  >
+                  <button type="submit" className="goals-form-submit">
                     Save Goal
                   </button>
-                </div>
+                </form>
               )}
             </>
           )}

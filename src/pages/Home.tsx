@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, Bell } from 'lucide-react'
+import { CheckCircle, Bell, ChevronRight } from 'lucide-react'
 import { getTodayEntry, getAllEntries, deleteEntry, type DailyEntry } from '../utils/storage'
 import { getDailyQuote, getDailyImage } from '../utils/quotes'
+import {
+  getNotesThisWeek,
+  computeWeekMood,
+  type FutureSelfNote,
+  type WeekMood,
+} from '../utils/futureSelfNotes'
+import MonkeyMascot from '../components/MonkeyMascot'
 import EntryCard from '../components/EntryCard'
 import EntryDetailModal from '../components/EntryDetailModal'
 import { JournalEmptyState } from '../components/EmptyStates'
@@ -15,20 +22,25 @@ export default function HomePage() {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [recentEntries, setRecentEntries] = useState<DailyEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<DailyEntry | null>(null)
+  const [weekMood, setWeekMood] = useState<WeekMood | null>(null)
+  const [latestNote, setLatestNote] = useState<FutureSelfNote | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [dailyQuote, dailyImage, todayEntry, allEntries] = await Promise.all([
+      const [dailyQuote, dailyImage, todayEntry, allEntries, weekNotes] = await Promise.all([
         getDailyQuote(),
         getDailyImage(),
         getTodayEntry(),
         getAllEntries(),
+        getNotesThisWeek().catch(() => [] as FutureSelfNote[]),
       ])
       setTodayDone(!!todayEntry)
       setRecentEntries(allEntries.slice(0, 5))
       setQuote(dailyQuote)
       setImageUrl(dailyImage)
+      setWeekMood(computeWeekMood(weekNotes))
+      setLatestNote(weekNotes[0] ?? null)
       setLoading(false)
     }
     load()
@@ -74,6 +86,36 @@ export default function HomePage() {
             <CheckCircle size={24} color="var(--success)" />
             <span className="done-text">Today's reflection complete!</span>
           </div>
+        )}
+
+        {/* Future Self card */}
+        {weekMood && (
+          <button
+            className={`future-self-card mood-${weekMood.mood}`}
+            onClick={() => navigate('/future-self')}
+          >
+            <div className="future-self-card-monkey">
+              <MonkeyMascot mood={weekMood.mood} body={weekMood.body} size={80} />
+            </div>
+            <div className="future-self-card-body">
+              <div className="future-self-card-header">
+                <span className="future-self-card-label">Future Self</span>
+                <ChevronRight size={18} color="var(--text-secondary)" />
+              </div>
+              {latestNote ? (
+                <p className="future-self-card-note">"{latestNote.content}"</p>
+              ) : (
+                <p className="future-self-card-note muted">
+                  Nothing yet this week. Tap to write your first note.
+                </p>
+              )}
+              <p className="future-self-card-meta">
+                {weekMood.noteCount === 0
+                  ? 'Mood: neutral'
+                  : `${weekMood.noteCount} ${weekMood.noteCount === 1 ? 'note' : 'notes'} · mood: ${weekMood.mood}`}
+              </p>
+            </div>
+          </button>
         )}
 
         {/* Recent Entries */}

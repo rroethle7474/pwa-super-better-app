@@ -176,28 +176,39 @@ export default function SettingsPage() {
             <div className="question-list">
               {activeQuestions.map((q) => (
                 editingId === q.id ? (
-                  <div key={q.id} className="question-edit-row">
+                  <form
+                    key={q.id}
+                    className="question-edit-row"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                      void handleSaveEdit()
+                    }}
+                  >
                     <input
                       className="add-form-input"
                       placeholder="Title"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
+                      autoComplete="off"
                     />
                     <input
                       className="add-form-input"
                       placeholder="Question"
                       value={editPrompt}
                       onChange={(e) => setEditPrompt(e.target.value)}
+                      autoComplete="off"
                     />
                     <input
                       className="add-form-input"
                       placeholder="Follow-up label"
                       value={editFollowUp}
                       onChange={(e) => setEditFollowUp(e.target.value)}
+                      autoComplete="off"
                     />
                     <div className="type-toggle">
-                      <button className={`type-btn ${editType === 'yesno' ? 'active' : ''}`} onClick={() => setEditType('yesno')}>Yes/No</button>
-                      <button className={`type-btn ${editType === 'number' ? 'active' : ''}`} onClick={() => setEditType('number')}>Number</button>
+                      <button type="button" className={`type-btn ${editType === 'yesno' ? 'active' : ''}`} onClick={() => setEditType('yesno')}>Yes/No</button>
+                      <button type="button" className={`type-btn ${editType === 'number' ? 'active' : ''}`} onClick={() => setEditType('number')}>Number</button>
                     </div>
                     {editType === 'number' && (
                       <input
@@ -205,6 +216,7 @@ export default function SettingsPage() {
                         placeholder="Unit (e.g. miles, dollars, minutes)"
                         value={editUnit}
                         onChange={(e) => setEditUnit(e.target.value)}
+                        autoComplete="off"
                       />
                     )}
                     <p className="positive-answer-label">Positive outcome is:</p>
@@ -213,15 +225,15 @@ export default function SettingsPage() {
                       <button type="button" className={`type-btn positive-no ${!editPositiveAnswer ? 'active' : ''}`} onClick={() => setEditPositiveAnswer(false)}>No</button>
                     </div>
                     <div className="edit-actions">
-                      <button className="edit-action-btn cancel" onClick={() => setEditingId(null)}>
+                      <button type="button" className="edit-action-btn cancel" onClick={() => setEditingId(null)}>
                         Cancel
                       </button>
-                      <button type="button" className="edit-action-btn save" onClick={handleSaveEdit}>
+                      <button type="submit" className="edit-action-btn save">
                         <Check size={16} />
                         Save
                       </button>
                     </div>
-                  </div>
+                  </form>
                 ) : (
                   <div key={q.id} className="question-row">
                     <div className="question-row-info">
@@ -255,10 +267,17 @@ export default function SettingsPage() {
                 Add Question
               </button>
             ) : (
-              <div className="add-form">
+              <form
+                className="add-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                  void handleAddQuestion()
+                }}
+              >
                 <div className="add-form-header">
                   <span className="add-form-title">New Question</span>
-                  <button className="add-form-close" onClick={() => setShowAddForm(false)}>
+                  <button type="button" className="add-form-close" onClick={() => setShowAddForm(false)}>
                     <X size={18} />
                   </button>
                 </div>
@@ -267,18 +286,21 @@ export default function SettingsPage() {
                   placeholder="Title (e.g. Reading)"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
+                  autoComplete="off"
                 />
                 <input
                   className="add-form-input"
                   placeholder="Question (e.g. Did I read today?)"
                   value={newPrompt}
                   onChange={(e) => setNewPrompt(e.target.value)}
+                  autoComplete="off"
                 />
                 <input
                   className="add-form-input"
                   placeholder="Follow-up label (e.g. What did you read?)"
                   value={newFollowUp}
                   onChange={(e) => setNewFollowUp(e.target.value)}
+                  autoComplete="off"
                 />
                 <div className="type-toggle">
                   <button type="button" className={`type-btn ${newType === 'yesno' ? 'active' : ''}`} onClick={() => setNewType('yesno')}>Yes/No</button>
@@ -290,6 +312,7 @@ export default function SettingsPage() {
                     placeholder="Unit (e.g. miles, dollars, minutes)"
                     value={newUnit}
                     onChange={(e) => setNewUnit(e.target.value)}
+                    autoComplete="off"
                   />
                 )}
                 <p className="positive-answer-label">Positive outcome is:</p>
@@ -297,11 +320,7 @@ export default function SettingsPage() {
                   <button type="button" className={`type-btn positive-yes ${newPositiveAnswer ? 'active' : ''}`} onClick={() => setNewPositiveAnswer(true)}>Yes</button>
                   <button type="button" className={`type-btn positive-no ${!newPositiveAnswer ? 'active' : ''}`} onClick={() => setNewPositiveAnswer(false)}>No</button>
                 </div>
-                <button
-                  type="button"
-                  className="add-form-submit"
-                  onClick={handleAddQuestion}
-                >
+                <button type="submit" className="add-form-submit">
                   Save Question
                 </button>
                 {saveError && (
@@ -309,7 +328,7 @@ export default function SettingsPage() {
                     {saveError}
                   </div>
                 )}
-              </div>
+              </form>
             )}
           </>
         )}

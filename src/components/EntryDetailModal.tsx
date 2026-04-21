@@ -11,7 +11,10 @@ interface Props {
 }
 
 function formatDateLong(dateStr: string): string {
-  const date = new Date(dateStr + 'T12:00:00');
+  // Parse YYYY-MM-DD via numeric constructor — avoids iOS Safari's strict
+  // ISO-8601 parsing quirks and any timezone ambiguity around string parsing.
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',

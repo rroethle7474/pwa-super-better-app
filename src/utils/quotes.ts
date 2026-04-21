@@ -1,6 +1,9 @@
-interface CachedQuote {
+interface Quote {
   text: string;
   author: string;
+}
+
+interface CachedQuote extends Quote {
   date: string;
 }
 
@@ -9,8 +12,35 @@ interface CachedImage {
   date: string;
 }
 
+interface DailyContentResponse {
+  quote: Quote | null;
+  image: { url: string; title?: string; copyright?: string } | null;
+}
+
 const QUOTE_KEY = 'daily_quote';
 const IMAGE_KEY = 'daily_image';
+
+// Single-flight cache so a page that calls getDailyQuote() and getDailyImage()
+// in parallel only hits the edge function once.
+let inflight: Promise<DailyContentResponse | null> | null = null;
+
+// iOS Safari can throw on localStorage access in private mode or under storage
+// pressure (QuotaExceededError). Treat the cache as best-effort.
+function safeGet(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Storage unavailable — skip caching this run.
+  }
+}
 
 function getToday(): string {
   return new Date().toISOString().split('T')[0];
@@ -50,40 +80,101 @@ const QUOTES = [
   { text: 'What seems impossible today will one day become your warm-up.', author: 'Unknown' },
 ];
 
-export async function getDailyQuote(): Promise<{ text: string; author: string }> {
-  const today = getToday();
-
-  const cached = localStorage.getItem(QUOTE_KEY);
-  if (cached) {
-    const parsed: CachedQuote = JSON.parse(cached);
-    if (parsed.date === today) {
-      return { text: parsed.text, author: parsed.author };
-    }
-  }
-
-  // Use day of year for a rotating daily quote (no external API needed)
+function localFallbackQuote(): Quote {
+  // Use day of year for a rotating daily quote.
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
   );
-  const quote = QUOTES[dayOfYear % QUOTES.length];
-  localStorage.setItem(QUOTE_KEY, JSON.stringify({ ...quote, date: today }));
+  return QUOTES[dayOfYear % QUOTES.length];
+}
+
+function localFallbackImage(today: string): string {
+  const seed = today.replace(/-/g, '');
+  return `https://picsum.photos/seed/${seed}/800/400`;
+}
+
+/**
+ * Call the `daily-content` edge function to fetch the real daily quote (ZenQuotes)
+ * and daily image (Bing). Returns null on any failure so callers can fall back
+ * to the local rotation. Aborts after 8s so a slow edge function can't hang the UI.
+ */
+async function fetchDailyContent(): Promise<DailyContentResponse | null> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!supabaseUrl || !anonKey) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/daily-content`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': anonKey,
+        'Authorization': `Bearer ${anonKey}`,
+      },
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as DailyContentResponse;
+    return data;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function getDailyContent(): Promise<DailyContentResponse | null> {
+  if (!inflight) {
+    inflight = fetchDailyContent().finally(() => {
+      // Clear after a tick so concurrent callers share the result but a later
+      // call (e.g. after midnight refresh) can re-fetch.
+      setTimeout(() => { inflight = null; }, 0);
+    });
+  }
+  return inflight;
+}
+
+export async function getDailyQuote(): Promise<Quote> {
+  const today = getToday();
+
+  const cached = safeGet(QUOTE_KEY);
+  if (cached) {
+    try {
+      const parsed: CachedQuote = JSON.parse(cached);
+      if (parsed.date === today) {
+        return { text: parsed.text, author: parsed.author };
+      }
+    } catch {
+      // Corrupt cache — ignore and re-fetch.
+    }
+  }
+
+  const remote = await getDailyContent();
+  const quote = remote?.quote ?? localFallbackQuote();
+  safeSet(QUOTE_KEY, JSON.stringify({ ...quote, date: today }));
   return quote;
 }
 
 export async function getDailyImage(): Promise<string | null> {
   const today = getToday();
 
-  const cached = localStorage.getItem(IMAGE_KEY);
+  const cached = safeGet(IMAGE_KEY);
   if (cached) {
-    const parsed: CachedImage = JSON.parse(cached);
-    if (parsed.date === today) {
-      return parsed.url;
+    try {
+      const parsed: CachedImage = JSON.parse(cached);
+      if (parsed.date === today) {
+        return parsed.url;
+      }
+    } catch {
+      // Corrupt cache — ignore and re-fetch.
     }
   }
 
-  // Use picsum with today's date as seed for a consistent daily image
-  const seed = today.replace(/-/g, '');
-  const url = `https://picsum.photos/seed/${seed}/800/400`;
-  localStorage.setItem(IMAGE_KEY, JSON.stringify({ url, date: today }));
+  const remote = await getDailyContent();
+  const url = remote?.image?.url ?? localFallbackImage(today);
+  safeSet(IMAGE_KEY, JSON.stringify({ url, date: today }));
   return url;
 }
