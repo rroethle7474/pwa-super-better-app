@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, X, Download } from 'lucide-react'
+import { Search, X, Download, Clock } from 'lucide-react'
 import {
   getAllEntries,
   searchEntries,
@@ -10,7 +10,6 @@ import {
 import { APP_EXPORT_PREFIX } from '../utils/constants'
 import EntryCard from '../components/EntryCard'
 import EntryDetailModal from '../components/EntryDetailModal'
-import { HistoryEmptyState } from '../components/EmptyStates'
 import './History.css'
 
 export default function HistoryPage() {
@@ -53,44 +52,58 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="page">
-        <div className="page-content">
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem' }}>
-            Loading...
-          </p>
-        </div>
+      <div className="page center">
+        <div className="spinner" />
       </div>
     )
   }
 
   return (
     <div className="page">
-      <div className="page-content">
-        {/* Search Bar */}
-        <div className="search-bar">
-          <Search size={18} color="var(--text-muted)" />
-          <input
-            className="search-input"
-            placeholder="Search entries..."
-            value={query}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          {query.length > 0 && (
-            <button className="search-clear" onClick={() => handleSearch('')}>
-              <X size={18} />
+      <div className="page-shell">
+        <p className="sl-eyebrow">Archive</p>
+        <h1 className="sl-page-title">History.</h1>
+
+        <div className="history-toolbar">
+          <div className="history-search">
+            <Search size={16} className="history-search-icon" />
+            <input
+              className="history-search-input"
+              placeholder="Search entries…"
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+            {query.length > 0 && (
+              <button
+                type="button"
+                className="history-search-clear"
+                onClick={() => handleSearch('')}
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              className="sl-button ghost small"
+              onClick={handleExport}
+            >
+              <Download size={14} />
+              <span className="history-export-label">Export</span>
             </button>
           )}
         </div>
 
-        {/* Export button */}
         {entries.length > 0 && (
-          <button className="export-btn" onClick={handleExport}>
-            <Download size={16} />
-            Export Journal
-          </button>
+          <div className="sl-section-header">
+            <h2 className="sl-section-title">
+              {query ? `${entries.length} ${entries.length === 1 ? 'match' : 'matches'}` : 'All entries'}
+            </h2>
+          </div>
         )}
 
-        {/* Entry List */}
         {entries.map((entry) => (
           <EntryCard
             key={entry.date}
@@ -100,12 +113,18 @@ export default function HistoryPage() {
         ))}
 
         {entries.length === 0 && (
-          <div className="empty-state">
-            <HistoryEmptyState />
-            <p className="empty-text">
-              {query ? 'No matching entries' : 'No entries yet'}
+          <div className="sl-empty">
+            <div className="sl-empty-icon">
+              <Clock size={22} />
+            </div>
+            <p className="sl-empty-title">
+              {query ? 'Nothing matches that.' : 'No reflections yet.'}
             </p>
-            {!query && <p className="empty-subtext">Your reflections will appear here</p>}
+            <p className="sl-empty-text">
+              {query
+                ? 'Try a different word or clear the search.'
+                : 'Once you start journaling, your entries will collect here.'}
+            </p>
           </div>
         )}
       </div>

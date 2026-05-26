@@ -11,19 +11,20 @@ import {
   type FutureSelfNote,
   type WeekMood,
 } from '../utils/futureSelfNotes'
+import { useDialog } from '../contexts/DialogContext'
 import './FutureSelf.css'
 
 const MOOD_MESSAGE: Record<WeekMood['mood'], string> = {
-  happy: "I'm proud of you this week — keep it going!",
+  happy: "I'm proud of you this week — keep it going.",
   neutral: "I'm listening. Tell me how today went.",
   sad: "I'm worried about you. Let's turn this week around.",
 }
 
 const BODY_MESSAGE: Record<WeekMood['body'], string> = {
-  'very-slim': "Crushing the fitness game — keep it up!",
-  slim: "Fitness is trending in the right direction.",
-  normal: "Fitness is steady.",
-  wide: "Fitness is slipping a bit — time to refocus.",
+  'very-slim': 'Crushing the fitness game — keep it up.',
+  slim: 'Fitness is trending in the right direction.',
+  normal: 'Fitness is steady.',
+  wide: 'Fitness is slipping a bit — time to refocus.',
   'very-wide': "Getting rough on the fitness side. Let's turn it around.",
 }
 
@@ -36,8 +37,21 @@ function formatTime(iso: string): string {
   })
 }
 
+function sentimentChipClass(label: FutureSelfNote['sentimentLabel']) {
+  if (label === 'positive') return 'sl-chip positive'
+  if (label === 'negative') return 'sl-chip negative'
+  return 'sl-chip neutral'
+}
+
+function fitnessChipClass(score: number) {
+  if (score >= 0.2) return 'sl-chip positive'
+  if (score <= -0.2) return 'sl-chip negative'
+  return 'sl-chip neutral'
+}
+
 export default function FutureSelfPage() {
   const navigate = useNavigate()
+  const dialog = useDialog()
   const [notes, setNotes] = useState<FutureSelfNote[]>([])
   const [mood, setMood] = useState<WeekMood>({
     mood: 'neutral',
@@ -79,15 +93,17 @@ export default function FutureSelfPage() {
     if (!trimmed || submitting) return
 
     setSubmitting(true)
-    setError(null)
+    let errorMsg: string | null = null
     try {
       await addNote(trimmed)
       setDraft('')
       await refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save note')
-    } finally {
-      setSubmitting(false)
+      errorMsg = e instanceof Error ? e.message : 'Something went wrong. Please try again.'
+    }
+    setSubmitting(false)
+    if (errorMsg) {
+      await dialog.alert({ title: "Couldn't save note", message: errorMsg })
     }
   }
 
@@ -105,27 +121,37 @@ export default function FutureSelfPage() {
     const trimmed = editDraft.trim()
     if (!trimmed) return
     setSubmitting(true)
-    setError(null)
+    let errorMsg: string | null = null
     try {
       await updateNote(id, trimmed)
       setEditingId(null)
       setEditDraft('')
       await refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to update note')
-    } finally {
-      setSubmitting(false)
+      errorMsg = e instanceof Error ? e.message : 'Something went wrong. Please try again.'
+    }
+    setSubmitting(false)
+    if (errorMsg) {
+      await dialog.alert({ title: "Couldn't update note", message: errorMsg })
     }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this note? Your future self will forget it ever happened.')) return
-    setError(null)
+    const ok = await dialog.confirm({
+      title: 'Delete note?',
+      message: 'Your future self will forget it ever happened.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    })
+    if (!ok) return
     try {
       await deleteNote(id)
       await refresh()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to delete note')
+      await dialog.alert({
+        title: "Couldn't delete note",
+        message: e instanceof Error ? e.message : 'Something went wrong. Please try again.',
+      })
     }
   }
 
@@ -139,46 +165,56 @@ export default function FutureSelfPage() {
 
   return (
     <div className="page">
-      <div className="page-content future-self-page">
-        {/* Header with back button */}
-        <div className="future-self-header">
-          <button className="back-btn" onClick={() => navigate('/')} aria-label="Back">
-            <ArrowLeft size={22} />
+      <div className="page-shell future-self-shell">
+        <div className="future-self-topnav">
+          <button
+            type="button"
+            className="sl-icon-button"
+            onClick={() => navigate('/')}
+            aria-label="Back to home"
+          >
+            <ArrowLeft size={18} />
           </button>
-          <h1 className="future-self-title">Future Self</h1>
+          <p className="sl-eyebrow" style={{ margin: 0 }}>This week</p>
         </div>
 
-        {/* Mood + body avatar */}
-        <div className={`mood-card mood-${mood.mood}`}>
-          <MonkeyMascot mood={mood.mood} body={mood.body} size={120} />
-          <p className="mood-message">{MOOD_MESSAGE[mood.mood]}</p>
-          <p className="body-message">{BODY_MESSAGE[mood.body]}</p>
-          <p className="mood-stats">
-            {mood.noteCount === 0
-              ? 'No notes yet this week'
-              : `${mood.noteCount} ${mood.noteCount === 1 ? 'note' : 'notes'} · mood avg ${mood.averageScore.toFixed(2)}${
-                  mood.fitnessNoteCount > 0
-                    ? ` · fitness ${mood.fitnessSum >= 0 ? '+' : ''}${mood.fitnessSum.toFixed(2)}`
-                    : ''
-                }`}
-          </p>
+        <h1 className="sl-page-title future-self-title">Future Self.</h1>
+
+        {/* Hero mood card */}
+        <div className={`future-self-hero mood-${mood.mood}`}>
+          <div className="future-self-hero-monkey">
+            <MonkeyMascot mood={mood.mood} body={mood.body} size={120} />
+          </div>
+          <div className="future-self-hero-text">
+            <p className="future-self-hero-message">{MOOD_MESSAGE[mood.mood]}</p>
+            <p className="future-self-hero-body">{BODY_MESSAGE[mood.body]}</p>
+            <p className="future-self-hero-stats">
+              {mood.noteCount === 0
+                ? 'No notes yet this week'
+                : `${mood.noteCount} ${mood.noteCount === 1 ? 'note' : 'notes'} · mood avg ${mood.averageScore.toFixed(2)}${
+                    mood.fitnessNoteCount > 0
+                      ? ` · fitness ${mood.fitnessSum >= 0 ? '+' : ''}${mood.fitnessSum.toFixed(2)}`
+                      : ''
+                  }`}
+            </p>
+          </div>
         </div>
 
         {/* Compose */}
         <form
-          className="compose-card"
+          className="future-self-compose"
           onSubmit={(e) => {
             e.preventDefault()
             if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
             void handleSubmit()
           }}
         >
-          <label htmlFor="note-input" className="compose-label">
+          <label htmlFor="note-input" className="sl-label">
             Message to your future self
           </label>
           <textarea
             id="note-input"
-            className="compose-input"
+            className="sl-textarea"
             placeholder="What do you want your future self to know?"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -186,31 +222,38 @@ export default function FutureSelfPage() {
             rows={3}
             disabled={submitting}
           />
-          <div className="compose-footer">
-            <span className="compose-count">{draft.length} / 2000</span>
+          <div className="future-self-compose-footer">
+            <span className="future-self-compose-count">{draft.length} / 2000</span>
             <button
               type="submit"
-              className="compose-submit"
+              className="sl-button"
               disabled={!draft.trim() || submitting}
             >
-              <Send size={16} />
+              <Send size={14} />
               {submitting ? 'Scoring…' : 'Send'}
             </button>
           </div>
         </form>
 
-        {error && <div className="error-banner">{error}</div>}
+        {error && <div className="sl-notice error future-self-error">{error}</div>}
 
-        {/* Notes list */}
-        <div className="section">
-          <h2 className="section-title">This Week</h2>
-          {notes.length === 0 ? (
-            <p className="empty-note">Nothing yet. Your first note will set the tone.</p>
-          ) : (
-            notes.map((note) => {
+        <div className="sl-section-header">
+          <h2 className="sl-section-title">Notes this week</h2>
+        </div>
+
+        {notes.length === 0 ? (
+          <p className="future-self-empty">
+            Nothing yet. Your first note will set the tone.
+          </p>
+        ) : (
+          <div className="future-self-notes">
+            {notes.map((note) => {
               const isEditing = editingId === note.id
               return (
-                <div key={note.id} className={`note-card sentiment-${note.sentimentLabel}`}>
+                <div
+                  key={note.id}
+                  className={`future-self-note sentiment-${note.sentimentLabel}`}
+                >
                   {isEditing ? (
                     <form
                       onSubmit={(e) => {
@@ -220,60 +263,67 @@ export default function FutureSelfPage() {
                       }}
                     >
                       <textarea
-                        className="compose-input"
+                        className="sl-textarea"
                         value={editDraft}
                         onChange={(e) => setEditDraft(e.target.value)}
                         maxLength={2000}
                         rows={3}
                         disabled={submitting}
                       />
-                      <div className="note-actions">
+                      <div className="future-self-note-actions">
+                        <button
+                          type="button"
+                          className="sl-button quiet small"
+                          onClick={cancelEdit}
+                          disabled={submitting}
+                        >
+                          <X size={14} />
+                          Cancel
+                        </button>
                         <button
                           type="submit"
-                          className="note-action"
+                          className="sl-button small"
                           disabled={!editDraft.trim() || submitting}
                         >
-                          <Check size={16} />
+                          <Check size={14} />
                           {submitting ? 'Saving…' : 'Save'}
-                        </button>
-                        <button type="button" className="note-action" onClick={cancelEdit} disabled={submitting}>
-                          <X size={16} />
-                          Cancel
                         </button>
                       </div>
                     </form>
                   ) : (
                     <>
-                      <p className="note-content">{note.content}</p>
-                      <div className="note-meta">
-                        <div className="note-pills">
-                          <span className={`sentiment-pill sentiment-${note.sentimentLabel}`}>
+                      <p className="future-self-note-content">{note.content}</p>
+                      <div className="future-self-note-meta">
+                        <div className="future-self-note-chips">
+                          <span className={sentimentChipClass(note.sentimentLabel)}>
                             {note.sentimentLabel} · {note.sentimentScore.toFixed(2)}
                           </span>
                           {note.fitnessScore !== null && (
-                            <span
-                              className={`fitness-pill ${
-                                note.fitnessScore >= 0.2
-                                  ? 'fitness-positive'
-                                  : note.fitnessScore <= -0.2
-                                    ? 'fitness-negative'
-                                    : 'fitness-neutral'
-                              }`}
-                            >
+                            <span className={fitnessChipClass(note.fitnessScore)}>
                               fitness {note.fitnessScore >= 0 ? '+' : ''}
                               {note.fitnessScore.toFixed(2)}
                             </span>
                           )}
                         </div>
-                        <span className="note-time">{formatTime(note.createdAt)}</span>
+                        <span className="future-self-note-time">
+                          {formatTime(note.createdAt)}
+                        </span>
                       </div>
-                      <div className="note-actions">
-                        <button className="note-action" onClick={() => startEdit(note)}>
-                          <Edit2 size={14} />
+                      <div className="future-self-note-actions">
+                        <button
+                          type="button"
+                          className="sl-button ghost small"
+                          onClick={() => startEdit(note)}
+                        >
+                          <Edit2 size={13} />
                           Edit
                         </button>
-                        <button className="note-action danger" onClick={() => handleDelete(note.id)}>
-                          <Trash2 size={14} />
+                        <button
+                          type="button"
+                          className="sl-button danger small"
+                          onClick={() => handleDelete(note.id)}
+                        >
+                          <Trash2 size={13} />
                           Delete
                         </button>
                       </div>
@@ -281,9 +331,9 @@ export default function FutureSelfPage() {
                   )}
                 </div>
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

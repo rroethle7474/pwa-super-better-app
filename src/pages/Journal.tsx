@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Save, CheckCircle, XCircle, ChevronLeft, ChevronRight, Plus, Settings } from 'lucide-react'
+import { Save, CheckCircle2, ChevronLeft, ChevronRight, PenLine, Check, CircleDashed } from 'lucide-react'
 import { getActiveQuestions, getQuestionById, type Question } from '../utils/questions'
 import { getJournalMode } from '../utils/preferences'
 import {
@@ -11,12 +11,24 @@ import {
 } from '../utils/storage'
 import QuestionCard from '../components/QuestionCard'
 import MonkeyMascot from '../components/MonkeyMascot'
+import { useDialog } from '../contexts/DialogContext'
 import './Journal.css'
 
 type AnswerState = Record<string, { answer: boolean | null; details: string; numericValue: number | null }>;
 
+function formatLongDate(now: Date) {
+  return now
+    .toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    })
+    .replace(/,/g, ' ·')
+}
+
 export default function JournalPage() {
   const navigate = useNavigate()
+  const dialog = useDialog()
   const [questions, setQuestions] = useState<Question[]>([])
   const [answers, setAnswers] = useState<AnswerState>({})
   const [existingEntry, setExistingEntry] = useState<DailyEntry | null>(null)
@@ -30,7 +42,6 @@ export default function JournalPage() {
       const entry = await getTodayEntry()
       if (entry) {
         setExistingEntry(entry)
-        // Resolve question lookups for the summary view
         const resolved = new Map<string, Question | undefined>()
         await Promise.all(
           entry.answers.map(async (a) => {
@@ -77,10 +88,7 @@ export default function JournalPage() {
   const allAnswered = questions.length > 0 && questions.every((q) => answers[q.id]?.answer !== null)
 
   const handleSubmit = async () => {
-    if (!allAnswered) {
-      alert('Please answer all questions before submitting.')
-      return
-    }
+    if (!allAnswered) return
 
     const entry: DailyEntry = {
       date: getTodayKey(),
@@ -93,8 +101,20 @@ export default function JournalPage() {
       completedAt: new Date().toISOString(),
     }
 
-    await saveEntry(entry)
-    alert('Great job reflecting today!')
+    try {
+      await saveEntry(entry)
+    } catch (e) {
+      await dialog.alert({
+        title: "Couldn't save reflection",
+        message: e instanceof Error ? e.message : 'Something went wrong. Please try again.',
+      })
+      return
+    }
+    await dialog.alert({
+      title: 'Saved',
+      message: 'Great job reflecting today!',
+      okLabel: 'Thanks',
+    })
     navigate('/')
   }
 
@@ -106,21 +126,22 @@ export default function JournalPage() {
     )
   }
 
+  const today = new Date()
+
   // No questions yet — guide user to add some
   if (!existingEntry && questions.length === 0) {
     return (
       <div className="page">
-        <div className="page-content">
-          <div className="empty-state" style={{ paddingTop: 60 }}>
-            <Plus size={48} color="var(--primary)" />
-            <p className="empty-text">No questions yet</p>
-            <p className="empty-subtext">Add some reflection questions to start your daily check-in</p>
-            <button
-              className="stepper-btn next"
-              style={{ marginTop: 20, maxWidth: 220, padding: '12px 24px' }}
-              onClick={() => navigate('/settings')}
-            >
-              <Settings size={18} />
+        <div className="page-shell">
+          <div className="sl-empty">
+            <div className="sl-empty-icon">
+              <PenLine size={22} />
+            </div>
+            <p className="sl-empty-title">No questions yet.</p>
+            <p className="sl-empty-text">
+              Add a few prompts in Settings and your daily check-in is ready.
+            </p>
+            <button className="sl-button" onClick={() => navigate('/settings')}>
               Go to Settings
             </button>
           </div>
@@ -133,37 +154,48 @@ export default function JournalPage() {
   if (existingEntry) {
     return (
       <div className="page">
-        <div className="page-content">
-          <div className="done-container">
-            <CheckCircle size={64} color="var(--success)" />
-            <h2 className="done-title">Already reflected today!</h2>
-            <p className="done-subtext">Come back tomorrow to check in again.</p>
+        <div className="page-shell">
+          <p className="sl-eyebrow">{formatLongDate(today)}</p>
+          <h1 className="sl-page-title">Today's reflection.</h1>
+
+          <div className="journal-done-banner">
+            <CheckCircle2 size={20} />
+            <span>You've already reflected today. Come back tomorrow.</span>
           </div>
 
-          <h3 className="summary-title">Today's Reflection</h3>
-          {existingEntry.answers.map((a) => {
-            const question = resolvedQuestions.get(a.questionId)
-            return (
-              <div key={a.questionId} className="summary-card">
-                <div className="summary-header">
-                  {a.answer ? (
-                    <CheckCircle size={18} color="var(--success)" />
-                  ) : (
-                    <XCircle size={18} color="var(--error)" />
-                  )}
-                  <span className="summary-question">
-                    {question?.prompt ?? a.questionId}
+          <div className="sl-section-header">
+            <h2 className="sl-section-title">Summary</h2>
+          </div>
+
+          <div className="journal-summary-list">
+            {existingEntry.answers.map((a) => {
+              const question = resolvedQuestions.get(a.questionId)
+              return (
+                <div key={a.questionId} className="journal-summary-item">
+                  <span
+                    className={`journal-summary-marker ${a.answer ? 'yes' : 'no'}`}
+                    aria-hidden
+                  >
+                    {a.answer ? <Check size={13} /> : <CircleDashed size={13} />}
                   </span>
+                  <div className="journal-summary-body">
+                    <p className="journal-summary-question">
+                      {question?.prompt ?? a.questionId}
+                    </p>
+                    {a.numericValue != null && question?.type === 'number' && (
+                      <p className="journal-summary-numeric">
+                        {a.numericValue}
+                        {question.unit ? <span> {question.unit}</span> : null}
+                      </p>
+                    )}
+                    {a.details && (
+                      <p className="journal-summary-details">{a.details}</p>
+                    )}
+                  </div>
                 </div>
-                {a.numericValue != null && question?.type === 'number' && (
-                  <p className="summary-numeric">{a.numericValue} {question.unit ?? ''}</p>
-                )}
-                {a.details && (
-                  <p className="summary-details">{a.details}</p>
-                )}
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
     )
@@ -176,26 +208,33 @@ export default function JournalPage() {
     const isFirst = stepIndex === 0
     const isLast = stepIndex === questions.length - 1
     const currentAnswered = currentAnswer?.answer !== null
+    const progressPct = ((stepIndex + 1) / questions.length) * 100
 
     return (
-      <div className="page">
-        <div className="page-content">
-          {/* Progress bar */}
-          <div className="stepper-progress">
-            <div
-              className="stepper-progress-fill"
-              style={{ width: `${((stepIndex + 1) / questions.length) * 100}%` }}
+      <div className="page journal-stepper-page">
+        <div className="page-shell journal-stepper-shell">
+          <p className="sl-eyebrow">{formatLongDate(today)}</p>
+          <h1 className="sl-page-title">Reflect.</h1>
+
+          <div className="journal-stepper-bar">
+            <div className="journal-stepper-bar-track">
+              <div
+                className="journal-stepper-bar-fill"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="journal-stepper-counter">
+              {stepIndex + 1} / {questions.length}
+            </span>
+          </div>
+
+          <div className="journal-stepper-mascot">
+            <MonkeyMascot
+              answer={currentAnswer?.answer ?? null}
+              questionIndex={stepIndex}
+              positiveAnswer={currentQ.positiveAnswer ?? true}
             />
           </div>
-          <p className="stepper-counter">
-            {stepIndex + 1} of {questions.length}
-          </p>
-
-          <MonkeyMascot
-            answer={currentAnswer?.answer ?? null}
-            questionIndex={stepIndex}
-            positiveAnswer={currentQ.positiveAnswer ?? true}
-          />
 
           <QuestionCard
             question={currentQ}
@@ -207,44 +246,51 @@ export default function JournalPage() {
             onNumericChange={(val) => setNumeric(currentQ.id, val)}
           />
 
-          <div className="stepper-nav">
+          {/* Dot indicators (inline, between card and nav) */}
+          <div className="journal-stepper-dots">
+            {questions.map((q, i) => (
+              <button
+                key={q.id}
+                className={`journal-stepper-dot ${i === stepIndex ? 'current' : ''} ${answers[q.id]?.answer !== null ? 'answered' : ''}`}
+                onClick={() => setStepIndex(i)}
+                aria-label={`Go to question ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          {/* Nav: sticky on mobile, inline on desktop */}
+          <div className="journal-stepper-nav">
             <button
-              className="stepper-btn back"
+              type="button"
+              className="sl-button ghost"
               onClick={() => setStepIndex((i) => i - 1)}
               disabled={isFirst}
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={16} />
               Back
             </button>
 
             {isLast ? (
               <button
-                className={`stepper-btn save ${!allAnswered ? 'disabled' : ''}`}
+                type="button"
+                className="sl-button"
                 onClick={handleSubmit}
+                disabled={!allAnswered}
               >
-                <Save size={18} />
-                Save Reflection
+                <Save size={16} />
+                Save reflection
               </button>
             ) : (
               <button
-                className={`stepper-btn next ${!currentAnswered ? 'disabled' : ''}`}
+                type="button"
+                className="sl-button"
                 onClick={() => setStepIndex((i) => i + 1)}
+                disabled={!currentAnswered}
               >
                 Next
-                <ChevronRight size={20} />
+                <ChevronRight size={16} />
               </button>
             )}
-          </div>
-
-          {/* Dot indicators */}
-          <div className="stepper-dots">
-            {questions.map((q, i) => (
-              <button
-                key={q.id}
-                className={`stepper-dot ${i === stepIndex ? 'current' : ''} ${answers[q.id]?.answer !== null ? 'answered' : ''}`}
-                onClick={() => setStepIndex(i)}
-              />
-            ))}
           </div>
         </div>
       </div>
@@ -254,9 +300,12 @@ export default function JournalPage() {
   // List mode (default)
   return (
     <div className="page">
-      <div className="page-content">
-        <h1 className="journal-header">Daily Check-In</h1>
-        <p className="journal-subtitle">Take a moment to reflect on your day</p>
+      <div className="page-shell">
+        <p className="sl-eyebrow">{formatLongDate(today)}</p>
+        <h1 className="sl-page-title">Reflect.</h1>
+        <p className="sl-page-subtitle">
+          A few quiet questions for the end of the day.
+        </p>
 
         {questions.map((q) => (
           <QuestionCard
@@ -272,11 +321,13 @@ export default function JournalPage() {
         ))}
 
         <button
-          className={`submit-btn ${!allAnswered ? 'disabled' : ''}`}
+          type="button"
+          className="sl-button block large journal-list-submit"
           onClick={handleSubmit}
+          disabled={!allAnswered}
         >
-          <Save size={20} />
-          Save Reflection
+          <Save size={18} />
+          Save reflection
         </button>
       </div>
     </div>

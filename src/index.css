@@ -1,20 +1,32 @@
 :root {
-  --primary: #6C63FF;
-  --primary-dark: #5A52D5;
-  --background: #1a1a2e;
-  --surface: #16213e;
-  --surface-light: #0f3460;
-  --accent: #e94560;
-  --text: #FFFFFF;
-  --text-secondary: #a8a8b3;
-  --text-muted: #6c6c80;
+  /* Palette — sampled from the "Centered Sanctuary" mockup */
+  --primary: #7c6ff5;
+  --primary-dark: #5a52c4;
+  --background: #0a1024;
+  --background-soft: #0e1530;
+  --surface: #141b38;
+  --surface-light: #1a2240;
+  --surface-quote: #0f1730;
+  --accent: #f43f5e;
+  --text: #e9e7f5;
+  --text-secondary: #9b94b8;
+  --text-muted: #6b6885;
   --success: #4CAF50;
-  --error: #e94560;
-  --card-border: #2a2a4a;
-  --input-bg: #252547;
-  --glass-bg: rgba(22, 33, 62, 0.6);
-  --glass-border: rgba(108, 99, 255, 0.12);
+  --error: #f43f5e;
+  --card-border: rgba(255, 255, 255, 0.06);
+  --input-bg: #1a2240;
+  --glass-bg: rgba(20, 27, 56, 0.6);
+  --glass-border: rgba(124, 111, 245, 0.12);
   --glass-blur: 16px;
+
+  /* Typography */
+  --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+  --font-serif: 'Newsreader', 'Source Serif Pro', Georgia, serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Layout */
+  --content-max-width: 720px;
+  --rail-width: 220px;
 }
 
 * {
@@ -25,7 +37,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-ui);
   background: var(--background);
   color: var(--text);
   min-height: 100dvh;

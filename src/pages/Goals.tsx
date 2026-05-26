@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Archive, RotateCcw, X, Pencil, Check, ChevronDown, ChevronRight, Trophy, TrendingUp, Clock, CalendarDays } from 'lucide-react'
-import { GoalsEmptyState } from '../components/EmptyStates'
+import {
+  Plus, Archive, RotateCcw, X, Pencil, Check,
+  ChevronDown, ChevronRight, Trophy, TrendingUp,
+  Clock, CalendarDays, Target as TargetIcon,
+} from 'lucide-react'
 import { getQuestions, type Question } from '../utils/questions'
 import { getAllEntries, type DailyEntry } from '../utils/storage'
+import { useDialog } from '../contexts/DialogContext'
 import {
   getGoals,
   addGoal,
@@ -16,6 +20,7 @@ import {
 import './Goals.css'
 
 export default function GoalsPage() {
+  const dialog = useDialog()
   const [goals, setGoals] = useState<Goal[]>([])
   const [allQuestions, setAllQuestions] = useState<Question[]>([])
   const [entries, setEntries] = useState<DailyEntry[]>([])
@@ -26,23 +31,19 @@ export default function GoalsPage() {
   const activeGoals = goals.filter((g) => g.active)
   const archivedGoals = goals.filter((g) => !g.active)
 
-  // Progress view state
   const [selectedGoalId, setSelectedGoalId] = useState<string>('')
   const selectedGoal = activeGoals.find((g) => g.id === selectedGoalId)
 
-  // Management state
   const [manageOpen, setManageOpen] = useState(false)
   const [archivedOpen, setArchivedOpen] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
-  // Add form state
   const [newDesc, setNewDesc] = useState('')
   const [newTarget, setNewTarget] = useState('')
   const [newDate, setNewDate] = useState('')
   const [newQuestionId, setNewQuestionId] = useState('')
 
-  // Edit form state
   const [editDesc, setEditDesc] = useState('')
   const [editTarget, setEditTarget] = useState('')
   const [editDate, setEditDate] = useState('')
@@ -50,7 +51,24 @@ export default function GoalsPage() {
 
   const todayStr = new Date().toISOString().split('T')[0]
 
-  // Get questions already assigned to an active goal (for validation)
+  const newTargetVal = parseFloat(newTarget)
+  const isAddValid =
+    newDesc.trim() !== '' &&
+    newTarget !== '' &&
+    !isNaN(newTargetVal) &&
+    newTargetVal > 0 &&
+    newDate !== '' &&
+    newQuestionId !== ''
+
+  const editTargetVal = parseFloat(editTarget)
+  const isEditValid =
+    editDesc.trim() !== '' &&
+    editTarget !== '' &&
+    !isNaN(editTargetVal) &&
+    editTargetVal > 0 &&
+    editDate !== '' &&
+    editQuestionId !== ''
+
   const assignedQuestionIds = activeGoals
     .filter((g) => g.id !== editingId)
     .map((g) => g.questionId)
@@ -72,7 +90,6 @@ export default function GoalsPage() {
     }
   }, [selectedGoalId])
 
-  // Initial data load
   useEffect(() => {
     async function loadData() {
       const [loadedGoals, loadedQuestions, loadedEntries] = await Promise.all([
@@ -97,18 +114,21 @@ export default function GoalsPage() {
   }, [])
 
   const handleAddGoal = async () => {
-    const targetVal = parseFloat(newTarget)
-    if (!newDesc.trim() || !newTarget || isNaN(targetVal) || targetVal <= 0 || !newDate || !newQuestionId) {
-      alert('Please fill in all fields with valid values.')
-      return
+    if (!isAddValid) return
+    try {
+      await addGoal(newDesc.trim(), newTargetVal, newDate, newQuestionId)
+      await refreshGoals()
+      setNewDesc('')
+      setNewTarget('')
+      setNewDate('')
+      setNewQuestionId(availableQuestionsForAdd[0]?.id ?? '')
+      setShowAddForm(false)
+    } catch (e) {
+      await dialog.alert({
+        title: "Couldn't save goal",
+        message: e instanceof Error ? e.message : 'Something went wrong. Please try again.',
+      })
     }
-    await addGoal(newDesc.trim(), targetVal, newDate, newQuestionId)
-    await refreshGoals()
-    setNewDesc('')
-    setNewTarget('')
-    setNewDate('')
-    setNewQuestionId(availableQuestionsForAdd[0]?.id ?? '')
-    setShowAddForm(false)
   }
 
   const startEditing = (g: Goal) => {
@@ -120,26 +140,47 @@ export default function GoalsPage() {
   }
 
   const handleSaveEdit = async () => {
-    const targetVal = parseFloat(editTarget)
-    if (!editingId || !editDesc.trim() || isNaN(targetVal) || targetVal <= 0 || !editDate || !editQuestionId) {
-      alert('Please fill in all fields with valid values.')
-      return
+    if (!editingId || !isEditValid) return
+    try {
+      await updateGoal(editingId, editDesc.trim(), editTargetVal, editDate, editQuestionId)
+      await refreshGoals()
+      setEditingId(null)
+    } catch (e) {
+      await dialog.alert({
+        title: "Couldn't save changes",
+        message: e instanceof Error ? e.message : 'Something went wrong. Please try again.',
+      })
     }
-    await updateGoal(editingId, editDesc.trim(), targetVal, editDate, editQuestionId)
-    await refreshGoals()
-    setEditingId(null)
   }
 
   const handleArchive = async (id: string) => {
-    if (confirm('Archive this goal? It will be moved to the archived section.')) {
+    const ok = await dialog.confirm({
+      title: 'Archive goal?',
+      message: 'It will be moved to the archived section.',
+      confirmLabel: 'Archive',
+    })
+    if (!ok) return
+    try {
       await archiveGoal(id)
       await refreshGoals()
+    } catch (e) {
+      await dialog.alert({
+        title: "Couldn't archive goal",
+        message: e instanceof Error ? e.message : 'Something went wrong. Please try again.',
+      })
     }
   }
 
   const handleRestore = async (id: string) => {
-    await restoreGoal(id)
-    await refreshGoals()
+    try {
+      await restoreGoal(id)
+      await refreshGoals()
+    } catch (e) {
+      await dialog.alert({
+        title: "Couldn't restore goal",
+        message: e instanceof Error ? e.message : 'Something went wrong. Please try again.',
+      })
+    }
   }
 
   const getQuestionLabel = (questionId: string): string => {
@@ -147,12 +188,10 @@ export default function GoalsPage() {
     return q ? `${q.title}${q.unit ? ` (${q.unit})` : ''}` : 'Unknown'
   }
 
-  // Progress for selected goal
   const progress = selectedGoal ? getGoalProgress(selectedGoal, entries) : null
   const isCompleted = progress && progress.current >= progress.target
   const isOverdue = selectedGoal && !isCompleted && progress && progress.daysRemaining === 0
 
-  // Auto-mark completed
   useEffect(() => {
     if (selectedGoal && isCompleted && !selectedGoal.completedAt) {
       markGoalCompleted(selectedGoal.id).then(() => refreshGoals())
@@ -165,25 +204,24 @@ export default function GoalsPage() {
 
   if (loading) {
     return (
-      <div className="page">
-        <div className="page-content">
-          <h1 className="goals-header">Goals</h1>
-          <p>Loading...</p>
-        </div>
+      <div className="page center">
+        <div className="spinner" />
       </div>
     )
   }
 
-  // No goals and no numeric questions
   if (numberQuestions.length === 0) {
     return (
       <div className="page">
-        <div className="page-content">
-          <h1 className="goals-header">Goals</h1>
-          <div className="goals-empty">
-            <GoalsEmptyState />
-            <p className="goals-empty-title">No numeric questions yet</p>
-            <p className="goals-empty-text">
+        <div className="page-shell">
+          <p className="sl-eyebrow">Tracking</p>
+          <h1 className="sl-page-title">Goals.</h1>
+          <div className="sl-empty">
+            <div className="sl-empty-icon">
+              <TargetIcon size={22} />
+            </div>
+            <p className="sl-empty-title">No numeric questions yet.</p>
+            <p className="sl-empty-text">
               Add a question with the "Number" type in Settings before creating goals.
             </p>
           </div>
@@ -192,17 +230,20 @@ export default function GoalsPage() {
     )
   }
 
+  const progressPct = progress?.percentage ?? 0
+  const progressStatus = isCompleted ? 'completed' : isOverdue ? 'overdue' : 'active'
+
   return (
     <div className="page">
-      <div className="page-content">
-        <h1 className="goals-header">Goals</h1>
+      <div className="page-shell">
+        <p className="sl-eyebrow">Tracking</p>
+        <h1 className="sl-page-title">Goals.</h1>
 
-        {/* Progress View */}
         {activeGoals.length > 0 && selectedGoal && progress ? (
           <>
-            <div className="goals-select-wrapper">
+            {activeGoals.length > 1 && (
               <select
-                className="goals-select"
+                className="sl-select goals-picker"
                 value={selectedGoalId}
                 onChange={(e) => setSelectedGoalId(e.target.value)}
               >
@@ -212,137 +253,162 @@ export default function GoalsPage() {
                   </option>
                 ))}
               </select>
-            </div>
+            )}
 
             {isCompleted && (
-              <div className="goals-met-banner">
-                <Trophy size={24} />
-                Goal Met!
+              <div className="goals-met">
+                <Trophy size={18} />
+                <span>Goal met. Beautiful work.</span>
               </div>
             )}
 
-            <div className="goals-progress-card">
-              <div className="goals-progress-header">
-                <span className="goals-progress-description">
-                  {getQuestionLabel(selectedGoal.questionId)}
-                </span>
-                <span className={`goals-progress-badge ${isCompleted ? 'completed' : isOverdue ? 'overdue' : 'active'}`}>
-                  {isCompleted ? 'Completed' : isOverdue ? 'Overdue' : 'In Progress'}
+            <div className="goals-hero">
+              <div className="goals-hero-head">
+                <div className="goals-hero-title-block">
+                  <p className="goals-hero-eyebrow">
+                    {getQuestionLabel(selectedGoal.questionId)}
+                  </p>
+                  <h2 className="goals-hero-title">{selectedGoal.description}</h2>
+                </div>
+                <span className={`sl-chip ${progressStatus === 'completed' ? 'positive' : progressStatus === 'overdue' ? 'negative' : 'indigo'}`}>
+                  {progressStatus === 'completed' ? 'Completed' : progressStatus === 'overdue' ? 'Overdue' : 'In progress'}
                 </span>
               </div>
 
-              <div className="goals-bar-container">
+              <div className="goals-bar">
                 <div
-                  className={`goals-bar-fill ${isCompleted ? 'completed' : isOverdue ? 'overdue' : ''}`}
-                  style={{ width: `${Math.max(progress.percentage, 2)}%` }}
+                  className={`goals-bar-fill status-${progressStatus}`}
+                  style={{ width: `${Math.max(progressPct, 2)}%` }}
                 />
-                {progress.percentage >= 15 && (
-                  <span className="goals-bar-percentage">{progress.percentage}%</span>
-                )}
               </div>
 
-              <div className="goals-bar-label">
-                <span>
+              <div className="goals-bar-numbers">
+                <span className="goals-bar-current">
                   {progress.current % 1 === 0 ? progress.current : progress.current.toFixed(1)}
-                  {selectedQuestion?.unit ? ` ${selectedQuestion.unit}` : ''}
+                  {selectedQuestion?.unit ? <span className="goals-bar-unit"> {selectedQuestion.unit}</span> : null}
                 </span>
-                <span>
-                  {progress.target % 1 === 0 ? progress.target : progress.target.toFixed(1)}
+                <span className="goals-bar-target">
+                  of {progress.target % 1 === 0 ? progress.target : progress.target.toFixed(1)}
                   {selectedQuestion?.unit ? ` ${selectedQuestion.unit}` : ''}
                 </span>
               </div>
 
               <div className="goals-stats">
-                <div className="goals-stat-card">
+                <div className="goals-stat">
                   <span className="goals-stat-icon">
-                    <TrendingUp size={14} color="var(--primary)" />
+                    <TrendingUp size={14} />
                   </span>
                   <span className={`goals-stat-value ${isCompleted ? 'completed' : ''}`}>
-                    {progress.percentage}%
+                    {progressPct}<span className="goals-stat-pct">%</span>
                   </span>
                   <span className="goals-stat-label">Progress</span>
                 </div>
-                <div className="goals-stat-card">
+                <div className="goals-stat">
                   <span className="goals-stat-icon">
-                    <Clock size={14} color="var(--primary)" />
+                    <Clock size={14} />
                   </span>
-                  <span className="goals-stat-value">
-                    {progress.daysRemaining}
-                  </span>
-                  <span className="goals-stat-label">Days Left</span>
+                  <span className="goals-stat-value">{progress.daysRemaining}</span>
+                  <span className="goals-stat-label">Days left</span>
                 </div>
-                <div className="goals-stat-card">
+                <div className="goals-stat">
                   <span className="goals-stat-icon">
-                    <CalendarDays size={14} color="var(--primary)" />
+                    <CalendarDays size={14} />
                   </span>
-                  <span className="goals-stat-value">
-                    {selectedGoal.targetDate}
-                  </span>
-                  <span className="goals-stat-label">Target Date</span>
+                  <span className="goals-stat-value goals-stat-date">{selectedGoal.targetDate}</span>
+                  <span className="goals-stat-label">Target date</span>
                 </div>
               </div>
             </div>
           </>
         ) : (
           activeGoals.length === 0 && (
-            <div className="goals-empty">
-              <GoalsEmptyState />
-              <p className="goals-empty-title">No active goals</p>
-              <p className="goals-empty-text">
-                Create a goal below to start tracking your progress.
+            <div className="sl-empty">
+              <div className="sl-empty-icon">
+                <TargetIcon size={22} />
+              </div>
+              <p className="sl-empty-title">No active goals.</p>
+              <p className="sl-empty-text">
+                Open "Manage goals" below to create your first one.
               </p>
             </div>
           )
         )}
 
-        {/* Manage Goals Section */}
-        <div className="goals-manage-section">
-          <button className="goals-collapsible-header" onClick={() => setManageOpen(!manageOpen)}>
-            {manageOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-            <span className="goals-section-title">Manage Goals ({activeGoals.length})</span>
+        {/* Manage Goals */}
+        <div className="sl-section-header" style={{ marginTop: 40 }}>
+          <button
+            type="button"
+            className="sl-collapsible"
+            onClick={() => setManageOpen(!manageOpen)}
+          >
+            {manageOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            Manage goals <span className="count">({activeGoals.length})</span>
           </button>
+        </div>
 
-          {manageOpen && (
-            <>
-              <div className="goals-list">
-                {activeGoals.map((g) =>
-                  editingId === g.id ? (
-                    <form
-                      key={g.id}
-                      className="goals-edit-row"
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-                        void handleSaveEdit()
-                      }}
-                    >
+        {manageOpen && (
+          <>
+            <div className="goals-list">
+              {activeGoals.map((g) =>
+                editingId === g.id ? (
+                  <form
+                    key={g.id}
+                    className="goals-edit-form"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                      void handleSaveEdit()
+                    }}
+                  >
+                    <div className="sl-field">
+                      <label className="sl-label">Goal</label>
+                      <p className="sl-help">
+                        A short description of what you're working toward.
+                      </p>
                       <input
-                        className="goals-form-input"
+                        className="sl-input"
                         placeholder="Goal description"
                         value={editDesc}
                         onChange={(e) => setEditDesc(e.target.value)}
                         autoComplete="off"
                       />
-                      <label className="goals-form-label">Target Value</label>
-                      <input
-                        className="goals-form-input"
-                        type="number"
-                        placeholder="Target value"
-                        value={editTarget}
-                        onChange={(e) => setEditTarget(e.target.value)}
-                        inputMode="decimal"
-                      />
-                      <label className="goals-form-label">Target Date</label>
-                      <input
-                        className="goals-form-input"
-                        type="date"
-                        min={todayStr}
-                        value={editDate}
-                        onChange={(e) => setEditDate(e.target.value)}
-                      />
-                      <label className="goals-form-label">Linked Question</label>
+                    </div>
+                    <div className="sl-field sl-field-row">
+                      <div>
+                        <label className="sl-label">Target value</label>
+                        <p className="sl-help">
+                          The total to reach across all daily entries.
+                        </p>
+                        <input
+                          className="sl-input"
+                          type="number"
+                          placeholder="200"
+                          value={editTarget}
+                          onChange={(e) => setEditTarget(e.target.value)}
+                          inputMode="decimal"
+                        />
+                      </div>
+                      <div>
+                        <label className="sl-label">Target date</label>
+                        <p className="sl-help">
+                          When you want to hit your target.
+                        </p>
+                        <input
+                          className="sl-input"
+                          type="date"
+                          min={todayStr}
+                          value={editDate}
+                          onChange={(e) => setEditDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="sl-field">
+                      <label className="sl-label">Linked question</label>
+                      <p className="sl-help">
+                        The numeric question whose daily values count toward this goal.
+                      </p>
                       <select
-                        className="goals-form-select"
+                        className="sl-select"
                         value={editQuestionId}
                         onChange={(e) => setEditQuestionId(e.target.value)}
                       >
@@ -351,106 +417,143 @@ export default function GoalsPage() {
                             {q.title}{q.unit ? ` (${q.unit})` : ''}
                           </option>
                         ))}
-                        {/* Always show current question even if assigned */}
                         {!availableQuestionsForEdit.find((q) => q.id === editQuestionId) && (
                           <option value={editQuestionId}>
                             {getQuestionLabel(editQuestionId)}
                           </option>
                         )}
                       </select>
-                      <div className="goals-edit-actions">
-                        <button type="button" className="goals-edit-action-btn cancel" onClick={() => setEditingId(null)}>
-                          Cancel
-                        </button>
-                        <button type="submit" className="goals-edit-action-btn save">
-                          <Check size={16} />
-                          Save
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div key={g.id} className="goals-row">
-                      <div className="goals-row-info">
-                        <span className="goals-row-title">{g.description}</span>
-                        <span className="goals-row-meta">
-                          {getQuestionLabel(g.questionId)} &middot; Target: {g.targetValue} by {g.targetDate}
-                        </span>
-                      </div>
-                      <div className="goals-row-actions">
-                        <button
-                          className="goals-row-action edit"
-                          onClick={() => startEditing(g)}
-                          title="Edit"
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          className="goals-row-action archive"
-                          onClick={() => handleArchive(g.id)}
-                          title="Archive"
-                        >
-                          <Archive size={16} />
-                        </button>
-                      </div>
                     </div>
-                  )
-                )}
-              </div>
-
-              {!showAddForm ? (
-                <button
-                  className="goals-add-btn"
-                  onClick={() => {
-                    setNewQuestionId(availableQuestionsForAdd[0]?.id ?? '')
-                    setShowAddForm(true)
-                  }}
-                  disabled={availableQuestionsForAdd.length === 0}
-                >
-                  <Plus size={18} />
-                  {availableQuestionsForAdd.length === 0 ? 'All numeric questions have goals' : 'Add Goal'}
-                </button>
-              ) : (
-                <form
-                  className="goals-add-form"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-                    void handleAddGoal()
-                  }}
-                >
-                  <div className="goals-add-form-header">
-                    <span className="goals-add-form-title">New Goal</span>
-                    <button type="button" className="goals-add-form-close" onClick={() => setShowAddForm(false)}>
-                      <X size={18} />
-                    </button>
+                    <div className="goals-form-actions">
+                      <button
+                        type="button"
+                        className="sl-button quiet"
+                        onClick={() => setEditingId(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className="sl-button" disabled={!isEditValid}>
+                        <Check size={14} />
+                        Save
+                      </button>
+                    </div>
+                    {!isEditValid && (
+                      <p className="sl-form-hint">Fill all fields to save</p>
+                    )}
+                  </form>
+                ) : (
+                  <div key={g.id} className="sl-row">
+                    <div className="sl-row-body">
+                      <span className="sl-row-title">{g.description}</span>
+                      <span className="sl-row-sub">
+                        {getQuestionLabel(g.questionId)} · target {g.targetValue} by {g.targetDate}
+                      </span>
+                    </div>
+                    <div className="sl-row-actions">
+                      <button
+                        type="button"
+                        className="sl-icon-button primary"
+                        onClick={() => startEditing(g)}
+                        title="Edit"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="sl-icon-button"
+                        onClick={() => handleArchive(g.id)}
+                        title="Archive"
+                      >
+                        <Archive size={14} />
+                      </button>
+                    </div>
                   </div>
+                )
+              )}
+            </div>
+
+            {!showAddForm ? (
+              <button
+                type="button"
+                className="sl-button dashed block goals-add-btn"
+                onClick={() => {
+                  setNewQuestionId(availableQuestionsForAdd[0]?.id ?? '')
+                  setShowAddForm(true)
+                }}
+                disabled={availableQuestionsForAdd.length === 0}
+              >
+                <Plus size={16} />
+                {availableQuestionsForAdd.length === 0 ? 'All numeric questions have goals' : 'Add a goal'}
+              </button>
+            ) : (
+              <form
+                className="goals-add-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+                  void handleAddGoal()
+                }}
+              >
+                <div className="goals-add-form-head">
+                  <p className="sl-eyebrow" style={{ margin: 0 }}>New goal</p>
+                  <button
+                    type="button"
+                    className="sl-icon-button"
+                    onClick={() => setShowAddForm(false)}
+                    aria-label="Cancel"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="sl-field">
+                  <label className="sl-label">Goal</label>
+                  <p className="sl-help">
+                    A short description of what you're working toward.
+                  </p>
                   <input
-                    className="goals-form-input"
-                    placeholder="Goal description (e.g. Run a half marathon)"
+                    className="sl-input"
+                    placeholder="e.g. Run a half marathon"
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
                     autoComplete="off"
                   />
-                  <label className="goals-form-label">Target Value</label>
-                  <input
-                    className="goals-form-input"
-                    type="number"
-                    placeholder="Target value (e.g. 200)"
-                    value={newTarget}
-                    onChange={(e) => setNewTarget(e.target.value)}
-                    inputMode="decimal"
-                  />
-                  <label className="goals-form-label">Target Date</label>
-                  <input
-                    className="goals-form-input"
-                    type="date"
-                    min={todayStr}
-                    value={newDate}
-                    onChange={(e) => setNewDate(e.target.value)}
-                  />
-                  <label className="goals-form-label">Linked Question</label>
+                </div>
+                <div className="sl-field sl-field-row">
+                  <div>
+                    <label className="sl-label">Target value</label>
+                    <p className="sl-help">
+                      The total to reach across all daily entries.
+                    </p>
+                    <input
+                      className="sl-input"
+                      type="number"
+                      placeholder="200"
+                      value={newTarget}
+                      onChange={(e) => setNewTarget(e.target.value)}
+                      inputMode="decimal"
+                    />
+                  </div>
+                  <div>
+                    <label className="sl-label">Target date</label>
+                    <p className="sl-help">
+                      When you want to hit your target.
+                    </p>
+                    <input
+                      className="sl-input"
+                      type="date"
+                      min={todayStr}
+                      value={newDate}
+                      onChange={(e) => setNewDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="sl-field">
+                  <label className="sl-label">Linked question</label>
+                  <p className="sl-help">
+                    The numeric question whose daily values count toward this goal.
+                  </p>
                   <select
-                    className="goals-form-select"
+                    className="sl-select"
                     value={newQuestionId}
                     onChange={(e) => setNewQuestionId(e.target.value)}
                   >
@@ -460,48 +563,58 @@ export default function GoalsPage() {
                       </option>
                     ))}
                   </select>
-                  <button type="submit" className="goals-form-submit">
-                    Save Goal
-                  </button>
-                </form>
-              )}
-            </>
-          )}
-
-          {/* Archived Goals */}
-          {archivedGoals.length > 0 && (
-            <>
-              <button className="goals-collapsible-header" onClick={() => setArchivedOpen(!archivedOpen)}>
-                {archivedOpen ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                <span className="goals-section-title archived-title">Archived ({archivedGoals.length})</span>
-              </button>
-              {archivedOpen && (
-                <div className="goals-list">
-                  {archivedGoals.map((g) => (
-                    <div key={g.id} className="goals-row archived">
-                      <div className="goals-row-info">
-                        <span className="goals-row-title">{g.description}</span>
-                        <span className="goals-row-meta">
-                          {getQuestionLabel(g.questionId)} &middot; Target: {g.targetValue} by {g.targetDate}
-                          {g.completedAt ? ' (Completed)' : ''}
-                        </span>
-                      </div>
-                      <div className="goals-row-actions">
-                        <button
-                          className="goals-row-action restore"
-                          onClick={() => handleRestore(g.id)}
-                          title="Restore"
-                        >
-                          <RotateCcw size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
-              )}
-            </>
-          )}
-        </div>
+                <button type="submit" className="sl-button block" disabled={!isAddValid}>
+                  Save goal
+                </button>
+                {!isAddValid && (
+                  <p className="sl-form-hint">Fill all fields to save</p>
+                )}
+              </form>
+            )}
+          </>
+        )}
+
+        {/* Archived Goals */}
+        {archivedGoals.length > 0 && (
+          <>
+            <div className="sl-section-header">
+              <button
+                type="button"
+                className="sl-collapsible"
+                onClick={() => setArchivedOpen(!archivedOpen)}
+              >
+                {archivedOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                Archived <span className="count">({archivedGoals.length})</span>
+              </button>
+            </div>
+            {archivedOpen && (
+              <div className="goals-list">
+                {archivedGoals.map((g) => (
+                  <div key={g.id} className="sl-row goals-row-archived">
+                    <div className="sl-row-body">
+                      <span className="sl-row-title">{g.description}</span>
+                      <span className="sl-row-sub">
+                        {getQuestionLabel(g.questionId)} · target {g.targetValue} by {g.targetDate}
+                        {g.completedAt ? ' · completed' : ''}
+                      </span>
+                    </div>
+                    <div className="sl-row-actions">
+                      <button
+                        type="button"
+                        className="sl-icon-button primary"
+                        onClick={() => handleRestore(g.id)}
+                        title="Restore"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle, Bell, ChevronRight } from 'lucide-react'
+import { CheckCircle, Bell, ChevronRight, PenLine } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 import { getTodayEntry, getAllEntries, deleteEntry, type DailyEntry } from '../utils/storage'
 import { getDailyQuote, getDailyImage } from '../utils/quotes'
 import {
@@ -12,11 +13,39 @@ import {
 import MonkeyMascot from '../components/MonkeyMascot'
 import EntryCard from '../components/EntryCard'
 import EntryDetailModal from '../components/EntryDetailModal'
-import { JournalEmptyState } from '../components/EmptyStates'
 import './Home.css'
+
+function getGreetingPrefix(now: Date) {
+  const hour = now.getHours()
+  if (hour < 5) return 'Hello'
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function getDisplayName(user: ReturnType<typeof useAuth>['user']) {
+  if (!user) return null
+  const meta = user.user_metadata as { full_name?: string; name?: string } | null
+  const full = meta?.full_name ?? meta?.name
+  if (full) return full.split(' ')[0]
+  if (user.email) return user.email.split('@')[0]
+  return null
+}
+
+function formatLongDate(now: Date) {
+  return now
+    .toLocaleDateString(undefined, {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+    .replace(/,/g, ' ·')
+}
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [todayDone, setTodayDone] = useState(false)
   const [quote, setQuote] = useState({ text: '', author: '' })
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -54,37 +83,46 @@ export default function HomePage() {
     )
   }
 
+  const now = new Date()
+  const displayName = getDisplayName(user)
+  const greeting = displayName
+    ? `${getGreetingPrefix(now)}, ${displayName}.`
+    : `${getGreetingPrefix(now)}.`
+
   return (
     <div className="page">
-      <div className="page-content">
+      <div className="page-shell home">
+        {/* Date + greeting */}
+        <div className="home-eyebrow">{formatLongDate(now)}</div>
+        <h1 className="home-greeting">{greeting}</h1>
+
         {/* Daily Image + Quote */}
         <div className="quote-card">
-          {imageUrl && (
-            <img src={imageUrl} alt="" className="daily-image" />
-          )}
+          {imageUrl && <img src={imageUrl} alt="" className="daily-image" />}
           <div className="quote-content">
-            <p className="quote-text">"{quote.text}"</p>
-            <p className="quote-author">- {quote.author}</p>
+            <blockquote className="quote-text">"{quote.text}"</blockquote>
+            <div className="quote-author">— {quote.author}</div>
           </div>
         </div>
 
         {/* Today's Status */}
         {!todayDone && (
           <button className="reminder-card" onClick={() => navigate('/journal')}>
-            <div className="reminder-header">
-              <Bell size={20} color="var(--accent)" />
-              <span className="reminder-title">Time to reflect!</span>
+            <Bell size={18} className="reminder-icon" />
+            <div className="reminder-body">
+              <div className="reminder-title">Time to reflect</div>
+              <div className="reminder-text">
+                You haven't logged today yet. Tap here to check in with yourself.
+              </div>
             </div>
-            <p className="reminder-text">
-              You haven't logged today yet. Tap here to check in with yourself.
-            </p>
+            <ChevronRight size={16} className="reminder-chevron" />
           </button>
         )}
 
         {todayDone && (
           <div className="done-card">
-            <CheckCircle size={24} color="var(--success)" />
-            <span className="done-text">Today's reflection complete!</span>
+            <CheckCircle size={20} className="done-icon" />
+            <span className="done-text">Today's reflection complete.</span>
           </div>
         )}
 
@@ -95,13 +133,10 @@ export default function HomePage() {
             onClick={() => navigate('/future-self')}
           >
             <div className="future-self-card-monkey">
-              <MonkeyMascot mood={weekMood.mood} body={weekMood.body} size={80} />
+              <MonkeyMascot mood={weekMood.mood} body={weekMood.body} size={44} />
             </div>
             <div className="future-self-card-body">
-              <div className="future-self-card-header">
-                <span className="future-self-card-label">Future Self</span>
-                <ChevronRight size={18} color="var(--text-secondary)" />
-              </div>
+              <div className="future-self-card-label">Future Self</div>
               {latestNote ? (
                 <p className="future-self-card-note">"{latestNote.content}"</p>
               ) : (
@@ -115,6 +150,7 @@ export default function HomePage() {
                   : `${weekMood.noteCount} ${weekMood.noteCount === 1 ? 'note' : 'notes'} · mood: ${weekMood.mood}`}
               </p>
             </div>
+            <ChevronRight size={16} className="future-self-card-chevron" />
           </button>
         )}
 
@@ -133,10 +169,22 @@ export default function HomePage() {
         )}
 
         {recentEntries.length === 0 && (
-          <div className="empty-state">
-            <JournalEmptyState />
-            <p className="empty-text">No entries yet</p>
-            <p className="empty-subtext">Start your journey by tapping the Reflect tab</p>
+          <div className="home-empty">
+            <div className="home-empty-icon">
+              <PenLine size={22} />
+            </div>
+            <div className="home-empty-title">Your journal is quiet.</div>
+            <div className="home-empty-subtext">
+              When you're ready, write one line in{' '}
+              <button
+                type="button"
+                className="home-empty-link"
+                onClick={() => navigate('/journal')}
+              >
+                Reflect
+              </button>
+              .
+            </div>
           </div>
         )}
       </div>

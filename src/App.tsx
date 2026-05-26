@@ -3,6 +3,7 @@ import { Home, BookOpen, Clock, Target, Settings } from 'lucide-react'
 import { useAuth } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import PageTransition from './components/PageTransition'
+import Logo from './components/Logo'
 import LoginPage from './pages/Login'
 import HomePage from './pages/Home'
 import JournalPage from './pages/Journal'
@@ -21,12 +22,42 @@ const tabs = [
   { path: '/settings', icon: Settings, label: 'Settings' },
 ]
 
+function formatRailDate(now: Date) {
+  return now.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 function AppLayout() {
   const location = useLocation()
   const navigate = useNavigate()
 
   return (
     <div className="app">
+      <aside className="rail">
+        <div className="rail-logo">
+          <Logo />
+        </div>
+        <nav className="rail-nav">
+          {tabs.map(({ path, icon: Icon, label }) => {
+            const active = location.pathname === path
+            return (
+              <button
+                key={path}
+                className={`rail-item ${active ? 'active' : ''}`}
+                onClick={() => navigate(path)}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </button>
+            )
+          })}
+        </nav>
+        <div className="rail-footer">{formatRailDate(new Date())}</div>
+      </aside>
+
       <main className="app-content">
         <PageTransition>
           <Outlet />

@@ -25,35 +25,37 @@ export default function QuestionCard({
 
   return (
     <div className="question-card">
-      <span className="question-category">
-        {question.title}
-        {isNumber && <span className="question-type-badge">numeric</span>}
-      </span>
-      <h3 className="question-prompt">{question.prompt}</h3>
+      <div className="question-card-eyebrow">
+        <span className="question-card-category">{question.title}</span>
+        {isNumber && <span className="question-card-type">numeric</span>}
+      </div>
+      <h3 className="question-card-prompt">{question.prompt}</h3>
 
-      <div className="question-buttons">
+      <div className="question-card-answers">
         <button
-          className={`answer-btn yes ${answer === true ? 'active' : ''}`}
+          type="button"
+          className={`question-card-answer yes ${answer === true ? 'active' : ''}`}
           onClick={() => onAnswer(true)}
         >
-          <Check size={20} />
+          <Check size={16} />
           Yes
         </button>
         <button
-          className={`answer-btn no ${answer === false ? 'active' : ''}`}
+          type="button"
+          className={`question-card-answer no ${answer === false ? 'active' : ''}`}
           onClick={() => onAnswer(false)}
         >
-          <X size={20} />
+          <X size={16} />
           No
         </button>
       </div>
 
       {answer !== null && (
-        <div className="follow-up">
+        <div className="question-card-followup">
           {isNumber && (
-            <div className="numeric-row">
+            <div className="question-card-numeric">
               <input
-                className="numeric-input"
+                className="sl-input numeric"
                 type="number"
                 inputMode="decimal"
                 placeholder="0"
@@ -64,14 +66,14 @@ export default function QuestionCard({
                 }}
               />
               {question.unit && (
-                <span className="numeric-unit">{question.unit}</span>
+                <span className="question-card-unit">{question.unit}</span>
               )}
             </div>
           )}
-          <label className="follow-up-label">{question.followUpLabel}</label>
+          <label className="sl-label">{question.followUpLabel}</label>
           <textarea
-            className="follow-up-input"
-            placeholder="Type here..."
+            className="sl-textarea"
+            placeholder="A line or two…"
             value={details}
             onChange={(e) => onDetailsChange(e.target.value)}
             rows={3}

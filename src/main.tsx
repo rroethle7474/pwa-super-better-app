@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import { DialogProvider } from './contexts/DialogContext'
 import App from './App'
 import { APP_NAME } from './utils/constants'
 import './index.css'
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HashRouter>
       <AuthProvider>
-        <App />
+        <DialogProvider>
+          <App />
+        </DialogProvider>
       </AuthProvider>
     </HashRouter>
   </StrictMode>,

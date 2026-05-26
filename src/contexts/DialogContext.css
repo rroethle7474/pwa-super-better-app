@@ -1,0 +1,24 @@
+.sl-dialog {
+  max-width: 440px;
+}
+
+.sl-dialog-body {
+  padding-top: 18px;
+}
+
+.sl-dialog-message {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 22px;
+}
+
+.sl-dialog-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.sl-dialog-actions.two .sl-button {
+  flex: 1;
+}

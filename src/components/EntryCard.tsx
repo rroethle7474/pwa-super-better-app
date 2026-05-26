@@ -16,37 +16,38 @@ function formatDate(dateStr: string): string {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
   });
+}
+
+function formatYear(dateStr: string): string {
+  const [, , ] = dateStr.split('-')
+  return dateStr.split('-')[0]
 }
 
 export default function EntryCard({ entry, onPress }: Props) {
   const yesCount = entry.answers.filter((a) => a.answer).length;
+  const total = entry.answers.length;
   const lastAnswer = entry.answers[entry.answers.length - 1];
 
   return (
     <button className="entry-card" onClick={onPress}>
-      <div className="entry-header">
-        <span className="entry-date">{formatDate(entry.date)}</span>
-        <span className="entry-score">{yesCount}/{entry.answers.length}</span>
-      </div>
-
-      <div className="entry-dots">
-        {entry.answers.map((a, i) => (
-          <span
-            key={i}
-            className={`dot ${a.answer ? 'yes' : 'no'}`}
-          />
-        ))}
+      <div className="entry-card-head">
+        <div className="entry-card-date-block">
+          <span className="entry-card-eyebrow">{formatYear(entry.date)}</span>
+          <span className="entry-card-date">{formatDate(entry.date)}</span>
+        </div>
+        <span className="entry-card-score">
+          <span className="entry-card-score-value">{yesCount}</span>
+          <span className="entry-card-score-divider">/</span>
+          <span className="entry-card-score-total">{total}</span>
+        </span>
       </div>
 
       {lastAnswer?.details && (
-        <p className="entry-preview">{lastAnswer.details}</p>
+        <p className="entry-card-preview">{lastAnswer.details}</p>
       )}
 
-      <div className="entry-footer">
-        <ChevronRight size={16} color="var(--text-muted)" />
-      </div>
+      <ChevronRight size={16} className="entry-card-chevron" />
     </button>
   )
 }

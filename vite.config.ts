@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { APP_NAME, APP_SHORT_NAME } from './src/utils/constants'
 
 export default defineConfig({
-  base: '/SuperLoser/',
+  base: '/',
   plugins: [
     react(),
     VitePWA({

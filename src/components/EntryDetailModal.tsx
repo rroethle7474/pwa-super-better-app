@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { X, Check, CircleDashed, Trash2 } from 'lucide-react'
 import { getQuestionById, type Question } from '../utils/questions'
 import type { DailyEntry } from '../utils/storage'
 import './EntryDetailModal.css'
@@ -43,83 +43,88 @@ export default function EntryDetailModal({ entry, onClose, onDelete }: Props) {
     loadQuestions()
   }, [entry])
 
-  if (loading) {
-    return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <button className="modal-close" onClick={onClose}>
-              <X size={24} />
-            </button>
-            <h2 className="modal-date">{formatDateLong(entry.date)}</h2>
-            <div style={{ width: 24 }} />
-          </div>
-          <div className="modal-content">
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <button className="modal-close" onClick={onClose}>
-            <X size={24} />
+    <div className="sl-modal-overlay" onClick={onClose}>
+      <div className="sl-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="sl-modal-header">
+          <h2 className="sl-modal-title">{formatDateLong(entry.date)}</h2>
+          <button className="sl-modal-close" onClick={onClose} aria-label="Close">
+            <X size={18} />
           </button>
-          <h2 className="modal-date">{formatDateLong(entry.date)}</h2>
-          <div style={{ width: 24 }} />
         </div>
 
-        <div className="modal-content">
-          {entry.answers.map((a) => {
-            const question = questions.get(a.questionId);
-            return (
-              <div key={a.questionId} className="detail-card">
-                <span className="detail-category">
-                  {question?.title ?? 'Unknown'}
-                </span>
-                <div className="detail-answer">
-                  {a.answer ? (
-                    <CheckCircle size={20} color="var(--success)" />
-                  ) : (
-                    <XCircle size={20} color="var(--error)" />
-                  )}
-                  <span className="detail-question">
-                    {question?.prompt ?? a.questionId}
-                  </span>
+        <div className="sl-modal-body">
+          {loading ? (
+            <p className="entry-detail-loading">Loading…</p>
+          ) : (
+            <>
+              <div className="entry-detail-list">
+                {entry.answers.map((a) => {
+                  const question = questions.get(a.questionId)
+                  return (
+                    <div key={a.questionId} className="entry-detail-item">
+                      <div className="entry-detail-item-head">
+                        <span
+                          className={`entry-detail-marker ${a.answer ? 'yes' : 'no'}`}
+                          aria-hidden
+                        >
+                          {a.answer ? <Check size={13} /> : <CircleDashed size={13} />}
+                        </span>
+                        <div className="entry-detail-item-body">
+                          <span className="entry-detail-category">
+                            {question?.title ?? 'Unknown'}
+                          </span>
+                          <p className="entry-detail-question">
+                            {question?.prompt ?? a.questionId}
+                          </p>
+                          {a.numericValue != null && question?.type === 'number' && (
+                            <p className="entry-detail-numeric">
+                              {a.numericValue}
+                              {question.unit ? <span> {question.unit}</span> : null}
+                            </p>
+                          )}
+                          {a.details && (
+                            <p className="entry-detail-text">{a.details}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {onDelete && !confirmDelete && (
+                <button
+                  className="sl-button danger block entry-detail-delete"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 size={16} />
+                  Delete this entry
+                </button>
+              )}
+
+              {onDelete && confirmDelete && (
+                <div className="entry-detail-confirm">
+                  <p className="entry-detail-confirm-text">
+                    Delete this entry? This cannot be undone.
+                  </p>
+                  <div className="entry-detail-confirm-actions">
+                    <button
+                      className="sl-button quiet"
+                      onClick={() => setConfirmDelete(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="sl-button danger-solid"
+                      onClick={() => onDelete(entry.date)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                {a.numericValue != null && question?.type === 'number' && (
-                  <p className="detail-numeric">{a.numericValue} {question.unit ?? ''}</p>
-                )}
-                {a.details && (
-                  <p className="detail-text">{a.details}</p>
-                )}
-              </div>
-            );
-          })}
-
-          {onDelete && !confirmDelete && (
-            <button className="delete-entry-btn" onClick={() => setConfirmDelete(true)}>
-              <Trash2 size={18} />
-              Delete this entry
-            </button>
-          )}
-
-          {onDelete && confirmDelete && (
-            <div className="delete-confirm">
-              <p className="delete-confirm-text">Delete this entry? This cannot be undone.</p>
-              <div className="delete-confirm-actions">
-                <button className="delete-confirm-btn cancel" onClick={() => setConfirmDelete(false)}>
-                  Cancel
-                </button>
-                <button className="delete-confirm-btn confirm" onClick={() => onDelete(entry.date)}>
-                  Delete
-                </button>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

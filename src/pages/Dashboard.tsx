@@ -45,7 +45,6 @@ export default function DashboardPage() {
   const [average, setAverage] = useState(0)
   const [daysTracked, setDaysTracked] = useState(0)
 
-  // Load questions on mount
   useEffect(() => {
     const init = async () => {
       const questions = await getQuestions()
@@ -58,7 +57,6 @@ export default function DashboardPage() {
     init()
   }, [])
 
-  // Load chart data when dependencies change (replaces useMemo)
   useEffect(() => {
     if (!selectedId) {
       setDataPoints([])
@@ -82,7 +80,6 @@ export default function DashboardPage() {
         }
       }
 
-      // Sort chronologically for the chart
       points.sort((a, b) => a.date.localeCompare(b.date))
 
       const sum = points.reduce((acc, p) => acc + p.value, 0)
@@ -99,27 +96,24 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="page">
-        <div className="page-content">
-          <h1 className="dash-header">Dashboard</h1>
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem' }}>
-            Loading...
-          </p>
-        </div>
+      <div className="page center">
+        <div className="spinner" />
       </div>
     )
   }
 
-  // No number questions at all
   if (numberQuestions.length === 0) {
     return (
       <div className="page">
-        <div className="page-content">
-          <h1 className="dash-header">Dashboard</h1>
-          <div className="dash-empty">
-            <BarChart3 size={48} color="var(--text-muted)" />
-            <p className="dash-empty-title">No numeric questions yet</p>
-            <p className="dash-empty-text">
+        <div className="page-shell">
+          <p className="sl-eyebrow">Analytics</p>
+          <h1 className="sl-page-title">Dashboard.</h1>
+          <div className="sl-empty">
+            <div className="sl-empty-icon">
+              <BarChart3 size={22} />
+            </div>
+            <p className="sl-empty-title">No numeric questions yet.</p>
+            <p className="sl-empty-text">
               Add a question with the "Number" type in Settings to start tracking data here.
             </p>
           </div>
@@ -128,15 +122,22 @@ export default function DashboardPage() {
     )
   }
 
+  const ranges: { key: TimeRange; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'week', label: 'Week' },
+    { key: 'month', label: 'Month' },
+    { key: 'custom', label: 'Custom' },
+  ]
+
   return (
     <div className="page">
-      <div className="page-content">
-        <h1 className="dash-header">Dashboard</h1>
+      <div className="page-shell">
+        <p className="sl-eyebrow">Analytics</p>
+        <h1 className="sl-page-title">Dashboard.</h1>
 
-        {/* Question Selector */}
-        <div className="dash-select-wrapper">
+        <div className="dash-controls">
           <select
-            className="dash-select"
+            className="sl-select dash-select"
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
           >
@@ -146,38 +147,37 @@ export default function DashboardPage() {
               </option>
             ))}
           </select>
+
+          <div className="sl-segmented block dash-range">
+            {ranges.map((r) => (
+              <button
+                key={r.key}
+                type="button"
+                className={`sl-segmented-btn ${timeRange === r.key ? 'active' : ''}`}
+                onClick={() => setTimeRange(r.key)}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Time Range Toggle */}
-        <div className="dash-range-toggle">
-          {(['all', 'week', 'month', 'custom'] as TimeRange[]).map((r) => (
-            <button
-              key={r}
-              className={`dash-range-btn ${timeRange === r ? 'active' : ''}`}
-              onClick={() => setTimeRange(r)}
-            >
-              {r === 'all' ? 'All Time' : r === 'week' ? 'Week' : r === 'month' ? 'Month' : 'Custom'}
-            </button>
-          ))}
-        </div>
-
-        {/* Custom Date Inputs */}
         {timeRange === 'custom' && (
-          <div className="dash-custom-dates">
-            <div className="dash-date-field">
-              <label>From</label>
+          <div className="dash-custom">
+            <div className="dash-custom-field">
+              <label className="sl-label">From</label>
               <input
                 type="date"
-                className="dash-date-input"
+                className="sl-input dash-date"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
               />
             </div>
-            <div className="dash-date-field">
-              <label>To</label>
+            <div className="dash-custom-field">
+              <label className="sl-label">To</label>
               <input
                 type="date"
-                className="dash-date-input"
+                className="sl-input dash-date"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
               />
@@ -185,9 +185,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Stats Row */}
         <div className="dash-stats">
-          <div className="dash-stat-card">
+          <div className="dash-stat">
             <span className="dash-stat-value">
               {total % 1 === 0 ? total : total.toFixed(1)}
             </span>
@@ -195,20 +194,21 @@ export default function DashboardPage() {
               Total{selectedQuestion?.unit ? ` ${selectedQuestion.unit}` : ''}
             </span>
           </div>
-          <div className="dash-stat-card">
+          <div className="dash-stat">
             <span className="dash-stat-value">
               {average % 1 === 0 ? average : average.toFixed(1)}
             </span>
-            <span className="dash-stat-label">Daily Avg</span>
+            <span className="dash-stat-label">Daily avg</span>
           </div>
-          <div className="dash-stat-card">
+          <div className="dash-stat">
             <span className="dash-stat-value">{daysTracked}</span>
             <span className="dash-stat-label">Days</span>
           </div>
         </div>
 
-        {/* Chart */}
-        <SimpleChart data={dataPoints} unit={selectedQuestion?.unit} />
+        <div className="dash-chart-wrap">
+          <SimpleChart data={dataPoints} unit={selectedQuestion?.unit} />
+        </div>
       </div>
     </div>
   )

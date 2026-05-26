@@ -1,13 +1,15 @@
 .chart-container {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 16px;
+  background: var(--surface-quote);
+  border-radius: 14px;
+  padding: 20px 18px 16px;
   border: 1px solid var(--card-border);
 }
 
 .chart-scroll {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  /* Reserve room so the value-label crowns above tall bars never clip. */
+  margin-top: -4px;
 }
 
 .chart-svg {
@@ -17,40 +19,49 @@
 .chart-grid-line {
   stroke: var(--card-border);
   stroke-width: 1;
-  stroke-dasharray: 4 4;
+  stroke-dasharray: 3 5;
 }
 
 .chart-bar {
-  fill: var(--primary);
+  fill: url(#chartBarGradient);
   transition: opacity 0.2s;
 }
 
 .chart-value-label {
   fill: var(--text-secondary);
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   text-anchor: middle;
 }
 
 .chart-date-label {
   fill: var(--text-muted);
+  font-family: var(--font-mono);
   font-size: 10px;
+  letter-spacing: 0.04em;
   text-anchor: middle;
 }
 
 .chart-unit {
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-muted);
   text-align: right;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .chart-empty {
-  background: var(--surface);
-  border-radius: 16px;
-  padding: 40px 16px;
+  background: var(--surface-quote);
+  border-radius: 14px;
+  padding: 48px 20px;
   border: 1px solid var(--card-border);
   text-align: center;
   color: var(--text-muted);
+  font-family: var(--font-serif);
+  font-style: italic;
   font-size: 15px;
 }
