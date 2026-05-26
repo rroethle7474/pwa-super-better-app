@@ -18,7 +18,10 @@
 .page-shell {
   max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: 32px 16px 24px;
+  /* Top inset clears the iOS status bar / notch / Dynamic Island when the app
+     runs standalone with the black-translucent status bar (content draws under
+     it). env() resolves to 0 in a browser, so the gap stays a plain 32px there. */
+  padding: calc(32px + env(safe-area-inset-top, 0px)) 16px 24px;
 }
 
 /* ============================================================

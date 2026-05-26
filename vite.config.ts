@@ -13,8 +13,10 @@ export default defineConfig({
         name: APP_NAME,
         short_name: APP_SHORT_NAME,
         description: 'Daily self-reflection journal',
-        theme_color: '#1a1a2e',
-        background_color: '#1a1a2e',
+        // Match the real app background (--background in index.css) so the iOS
+        // launch background and Android theming align with what renders.
+        theme_color: '#0a1024',
+        background_color: '#0a1024',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
@@ -26,19 +28,15 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/zenquotes\.io\/api/,
-            handler: 'NetworkFirst',
+            // The client fetches daily quote+image from this edge function
+            // (which proxies ZenQuotes + Bing server-side). Serve the cached
+            // response instantly and refresh it in the background.
+            urlPattern: /\/functions\/v1\/daily-content/,
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'quotes-cache',
-              expiration: { maxEntries: 5, maxAgeSeconds: 86400 },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/www\.bing\.com/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'bing-image-cache',
-              expiration: { maxEntries: 5, maxAgeSeconds: 86400 },
+              cacheName: 'daily-content-cache',
+              expiration: { maxEntries: 2, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

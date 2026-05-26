@@ -137,6 +137,42 @@ function getDailyContent(): Promise<DailyContentResponse | null> {
   return inflight;
 }
 
+/**
+ * Synchronous, instant read of the last-known quote — regardless of which day
+ * it was cached. Lets the UI paint immediately while today's real quote is
+ * fetched in the background. Falls back to the local rotation so it's never empty.
+ */
+export function getCachedQuote(): Quote {
+  const cached = safeGet(QUOTE_KEY);
+  if (cached) {
+    try {
+      const parsed: CachedQuote = JSON.parse(cached);
+      return { text: parsed.text, author: parsed.author };
+    } catch {
+      // Corrupt cache — fall through to local rotation.
+    }
+  }
+  return localFallbackQuote();
+}
+
+/**
+ * Synchronous, instant read of the last-known image URL — regardless of day.
+ * Returns null when nothing is cached yet so the caller can show a skeleton
+ * instead of an empty box on a first-ever load.
+ */
+export function getCachedImage(): string | null {
+  const cached = safeGet(IMAGE_KEY);
+  if (cached) {
+    try {
+      const parsed: CachedImage = JSON.parse(cached);
+      return parsed.url;
+    } catch {
+      // Corrupt cache — show skeleton until the real image arrives.
+    }
+  }
+  return null;
+}
+
 export async function getDailyQuote(): Promise<Quote> {
   const today = getToday();
 

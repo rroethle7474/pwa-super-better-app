@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { CheckCircle, Bell, ChevronRight, PenLine } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getTodayEntry, getAllEntries, deleteEntry, type DailyEntry } from '../utils/storage'
-import { getDailyQuote, getDailyImage } from '../utils/quotes'
+import { getDailyQuote, getDailyImage, getCachedQuote, getCachedImage } from '../utils/quotes'
 import {
   getNotesThisWeek,
   computeWeekMood,
@@ -47,8 +47,10 @@ export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [todayDone, setTodayDone] = useState(false)
-  const [quote, setQuote] = useState({ text: '', author: '' })
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  // Seed from cache synchronously so the quote card paints instantly; today's
+  // real content is fetched in the background below and swapped in when ready.
+  const [quote, setQuote] = useState(() => getCachedQuote())
+  const [imageUrl, setImageUrl] = useState<string | null>(() => getCachedImage())
   const [recentEntries, setRecentEntries] = useState<DailyEntry[]>([])
   const [selectedEntry, setSelectedEntry] = useState<DailyEntry | null>(null)
   const [weekMood, setWeekMood] = useState<WeekMood | null>(null)
@@ -56,23 +58,43 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function load() {
-      const [dailyQuote, dailyImage, todayEntry, allEntries, weekNotes] = await Promise.all([
-        getDailyQuote(),
-        getDailyImage(),
+    let cancelled = false
+
+    // Page content (entries, status, future-self) gates the spinner. The daily
+    // quote/image are intentionally NOT awaited here so a cold edge-function
+    // call can't hold the whole screen behind a spinner.
+    async function loadCore() {
+      const [todayEntry, allEntries, weekNotes] = await Promise.all([
         getTodayEntry(),
         getAllEntries(),
         getNotesThisWeek().catch(() => [] as FutureSelfNote[]),
       ])
+      if (cancelled) return
       setTodayDone(!!todayEntry)
       setRecentEntries(allEntries.slice(0, 5))
-      setQuote(dailyQuote)
-      setImageUrl(dailyImage)
       setWeekMood(computeWeekMood(weekNotes))
       setLatestNote(weekNotes[0] ?? null)
       setLoading(false)
     }
-    load()
+
+    // Revalidate today's quote/image in the background and swap them in when
+    // ready. The card already shows the cached (possibly stale) values.
+    async function refreshDailyContent() {
+      const [dailyQuote, dailyImage] = await Promise.all([
+        getDailyQuote(),
+        getDailyImage(),
+      ])
+      if (cancelled) return
+      setQuote(dailyQuote)
+      setImageUrl(dailyImage)
+    }
+
+    loadCore()
+    refreshDailyContent()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (loading) {
@@ -98,7 +120,11 @@ export default function HomePage() {
 
         {/* Daily Image + Quote */}
         <div className="quote-card">
-          {imageUrl && <img src={imageUrl} alt="" className="daily-image" />}
+          {imageUrl ? (
+            <img src={imageUrl} alt="" className="daily-image" />
+          ) : (
+            <div className="daily-image daily-image-skeleton" aria-hidden />
+          )}
           <div className="quote-content">
             <blockquote className="quote-text">"{quote.text}"</blockquote>
             <div className="quote-author">— {quote.author}</div>

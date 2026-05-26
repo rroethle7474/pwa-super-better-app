@@ -70,6 +70,33 @@
   }
 }
 
+/* Placeholder shown while today's image is still loading (first-ever visit) */
+.daily-image-skeleton {
+  background: linear-gradient(
+    100deg,
+    var(--surface-quote) 30%,
+    var(--card-border) 50%,
+    var(--surface-quote) 70%
+  );
+  background-size: 200% 100%;
+  animation: daily-image-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes daily-image-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-image-skeleton {
+    animation: none;
+  }
+}
+
 .quote-content {
   padding: 24px 24px 28px;
   text-align: left;
